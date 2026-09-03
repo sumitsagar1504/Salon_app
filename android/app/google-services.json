@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "137228185600",
+    "project_id": "salonapp-419d7",
+    "storage_bucket": "salonapp-419d7.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:137228185600:android:7c3cd6b2edd3315f01a8e5",
+        "android_client_info": {
+          "package_name": "com.example.salon_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAKQtFxM5r-C571LhmZghoqBCtA_OmlgZw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:137228185600:android:cfbabb883d18a0f001a8e5",
+        "android_client_info": {
+          "package_name": "com.example.sumis"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAKQtFxM5r-C571LhmZghoqBCtA_OmlgZw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
