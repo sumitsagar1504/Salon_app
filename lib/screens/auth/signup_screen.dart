@@ -13,7 +13,6 @@ class _SignupScreenState extends State<SignupScreen> {
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
-  String _selectedRole = 'customer';
   bool _isLoading = false;
   bool _obscurePassword = true;
 
@@ -29,7 +28,6 @@ class _SignupScreenState extends State<SignupScreen> {
         _emailController.text.trim(),
         _passwordController.text.trim(),
         _nameController.text.trim(),
-        _selectedRole,
       );
 
       if (mounted) {
@@ -68,49 +66,24 @@ class _SignupScreenState extends State<SignupScreen> {
     return Scaffold(
       body: Stack(
         children: [
-          // Background Image
-          Container(
-            decoration: const BoxDecoration(
-              image: DecorationImage(
-                image: NetworkImage('https://images.pexels.com/photos/3993306/pexels-photo-3993306.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1'),
-                fit: BoxFit.cover,
-              ),
-            ),
-          ),
-          // Gradient Overlay
-          Container(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [
-                  Colors.black.withOpacity(0.4),
-                  Colors.purple.shade900.withOpacity(0.8),
-                ],
-              ),
-            ),
-          ),
           Center(
             child: SingleChildScrollView(
               padding: const EdgeInsets.all(24.0),
-              child: Column(
+              child: ConstrainedBox(constraints: const BoxConstraints(maxWidth: 460), child: Column(
                 children: [
-                  const Icon(Icons.content_cut, size: 70, color: Colors.white),
+                  Icon(Icons.content_cut, size: 64, color: Theme.of(context).colorScheme.primary),
                   const SizedBox(height: 10),
-                  const Text(
+                  Text(
                     'JOIN THE EXPERIENCE',
                     style: TextStyle(
                       fontSize: 26,
                       fontWeight: FontWeight.w900,
-                      color: Colors.white,
+                    color: Theme.of(context).colorScheme.primary,
                       letterSpacing: 2,
                     ),
                   ),
                   const SizedBox(height: 30),
                   Card(
-                    color: Colors.white.withOpacity(0.9),
-                    elevation: 10,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
                     child: Padding(
                       padding: const EdgeInsets.all(24.0),
                       child: Form(
@@ -165,25 +138,6 @@ class _SignupScreenState extends State<SignupScreen> {
                               validator: (value) => (value == null || value.length < 6) ? 'Password must be at least 6 characters' : null,
                             ),
                             const SizedBox(height: 16),
-                            DropdownButtonFormField<String>(
-                              value: _selectedRole,
-                              decoration: InputDecoration(
-                                labelText: 'Account Type',
-                                prefixIcon: const Icon(Icons.badge_outlined),
-                                filled: true,
-                                fillColor: Colors.grey.shade50,
-                                border: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide.none),
-                              ),
-                              items: const [
-                                DropdownMenuItem(value: 'customer', child: Text('Customer')),
-                                DropdownMenuItem(value: 'admin', child: Text('Admin')),
-                              ],
-                              onChanged: (value) {
-                                setState(() {
-                                  if (value != null) _selectedRole = value;
-                                });
-                              },
-                            ),
                             const SizedBox(height: 32),
                             if (_isLoading)
                               const CircularProgressIndicator()
@@ -208,7 +162,7 @@ class _SignupScreenState extends State<SignupScreen> {
                     ),
                   ),
                 ],
-              ),
+              )),
             ),
           ),
         ],

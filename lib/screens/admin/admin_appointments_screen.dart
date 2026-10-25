@@ -16,7 +16,7 @@ class _AdminAppointmentsScreenState extends State<AdminAppointmentsScreen> {
   @override
   Widget build(BuildContext context) {
     return DefaultTabController(
-      length: 3,
+      length: 4,
       child: Scaffold(
         appBar: AppBar(
           title: const Text('All Appointments'),
@@ -25,6 +25,7 @@ class _AdminAppointmentsScreenState extends State<AdminAppointmentsScreen> {
               Tab(text: 'All'),
               Tab(text: 'Pending'),
               Tab(text: 'Confirmed'),
+              Tab(text: 'Cancelled'),
             ],
           ),
         ),
@@ -33,6 +34,7 @@ class _AdminAppointmentsScreenState extends State<AdminAppointmentsScreen> {
             _buildAppointmentList('all'),
             _buildAppointmentList('pending'),
             _buildAppointmentList('confirmed'),
+            _buildAppointmentList('cancelled'),
           ],
         ),
       ),
@@ -46,6 +48,9 @@ class _AdminAppointmentsScreenState extends State<AdminAppointmentsScreen> {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
         }
+        if (snapshot.hasError) {
+          return const Center(child: Text('Appointments could not be loaded.'));
+        }
         if (!snapshot.hasData || snapshot.data!.isEmpty) {
           return const Center(child: Text('No appointments found.'));
         }
@@ -55,6 +60,8 @@ class _AdminAppointmentsScreenState extends State<AdminAppointmentsScreen> {
           appointments = appointments.where((a) => a.status == 'pending').toList();
         } else if (filter == 'confirmed') {
           appointments = appointments.where((a) => a.status == 'confirmed').toList();
+        } else if (filter == 'cancelled') {
+          appointments = appointments.where((a) => a.status == 'cancelled').toList();
         }
 
         if (appointments.isEmpty) {
@@ -117,11 +124,17 @@ class _AdminAppointmentsScreenState extends State<AdminAppointmentsScreen> {
                           Expanded(
                             child: ElevatedButton(
                               onPressed: () async {
-                                await _appointmentService.updateAppointmentStatus(appointment.id, 'confirmed');
-                                if (context.mounted) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(content: Text('Status updated!')),
-                                  );
+                                try {
+                                  await _appointmentService.updateAppointmentStatus(appointment.id, 'confirmed');
+                                  if (context.mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(content: Text('Appointment confirmed.')));
+                                  }
+                                } catch (_) {
+                                  if (context.mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(content: Text('Could not confirm appointment.')));
+                                  }
                                 }
                               },
                               style: ElevatedButton.styleFrom(backgroundColor: Colors.green, foregroundColor: Colors.white),
@@ -132,11 +145,29 @@ class _AdminAppointmentsScreenState extends State<AdminAppointmentsScreen> {
                           Expanded(
                             child: OutlinedButton(
                               onPressed: () async {
-                                await _appointmentService.updateAppointmentStatus(appointment.id, 'cancelled');
-                                if (context.mounted) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(content: Text('Status updated!')),
-                                  );
+                                final confirmed = await showDialog<bool>(
+                                  context: context,
+                                  builder: (dialogContext) => AlertDialog(
+                                    title: const Text('Cancel appointment?'),
+                                    content: Text('Cancel ${appointment.customerName}’s ${appointment.serviceName} booking?'),
+                                    actions: [
+                                      TextButton(onPressed: () => Navigator.pop(dialogContext, false), child: const Text('Keep booking')),
+                                      TextButton(onPressed: () => Navigator.pop(dialogContext, true), child: const Text('Cancel booking')),
+                                    ],
+                                  ),
+                                );
+                                if (confirmed != true) return;
+                                try {
+                                  await _appointmentService.updateAppointmentStatus(appointment.id, 'cancelled');
+                                  if (context.mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(content: Text('Appointment cancelled.')));
+                                  }
+                                } catch (_) {
+                                  if (context.mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(content: Text('Could not cancel appointment.')));
+                                  }
                                 }
                               },
                               style: OutlinedButton.styleFrom(foregroundColor: Colors.red, side: const BorderSide(color: Colors.red)),
@@ -174,7 +205,7 @@ class _AdminAppointmentsScreenState extends State<AdminAppointmentsScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: color),
       ),

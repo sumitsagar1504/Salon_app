@@ -14,6 +14,33 @@ class MyAppointmentsScreen extends StatefulWidget {
 class _MyAppointmentsScreenState extends State<MyAppointmentsScreen> {
   final AppointmentService _appointmentService = AppointmentService();
 
+  Future<void> _cancel(AppointmentModel appointment) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Cancel appointment?'),
+        content: Text('Cancel ${appointment.serviceName} on ${appointment.date} at ${appointment.timeSlot}?'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Keep booking')),
+          TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('Cancel appointment')),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    try {
+      await _appointmentService.updateAppointmentStatus(appointment.id, 'cancelled');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Appointment cancelled.')));
+      }
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Cancellation failed. Please try again.')));
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final user = FirebaseAuth.instance.currentUser;
@@ -28,8 +55,7 @@ class _MyAppointmentsScreenState extends State<MyAppointmentsScreen> {
               stream: _appointmentService.getCustomerAppointments(user.uid),
               builder: (context, snapshot) {
                 if (snapshot.hasError) {
-                  print("Firestore Error: ${snapshot.error}");
-                  return Center(child: Text('Error loading appointments: ${snapshot.error}'));
+                  return const Center(child: Text('Appointments could not be loaded. Please try again.'));
                 }
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const Center(child: CircularProgressIndicator());
@@ -44,7 +70,9 @@ class _MyAppointmentsScreenState extends State<MyAppointmentsScreen> {
                   itemCount: appointments.length,
                   itemBuilder: (context, index) {
                     final appointment = appointments[index];
-                    return Card(
+                    return Center(child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 760),
+                      child: Card(
                       elevation: 3,
                       margin: const EdgeInsets.only(bottom: 16),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -53,8 +81,10 @@ class _MyAppointmentsScreenState extends State<MyAppointmentsScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            Wrap(
+                              alignment: WrapAlignment.spaceBetween,
+                              spacing: 12,
+                              runSpacing: 8,
                               children: [
                                 Text(
                                   appointment.serviceName,
@@ -94,10 +124,19 @@ class _MyAppointmentsScreenState extends State<MyAppointmentsScreen> {
                                 color: Theme.of(context).primaryColor,
                               ),
                             ),
+                            if (appointment.status == 'pending' &&
+                                appointment.date.compareTo(DateFormat('yyyy-MM-dd').format(DateTime.now())) >= 0)
+                              Align(
+                                alignment: Alignment.centerRight,
+                                child: TextButton(
+                                  onPressed: () => _cancel(appointment),
+                                  child: const Text('Cancel appointment'),
+                                ),
+                              ),
                           ],
                         ),
                       ),
-                    );
+                    )));
                   },
                 );
               },
@@ -124,7 +163,7 @@ class _MyAppointmentsScreenState extends State<MyAppointmentsScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: color),
       ),

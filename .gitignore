@@ -32,6 +32,10 @@ migrate_working_dir/
 .pub/
 /build/
 /coverage/
+*.service-account.json
+service-account*.json
+scripts/migration/node_modules/
+.vercel/
 
 # Symbolication related
 app.*.symbols

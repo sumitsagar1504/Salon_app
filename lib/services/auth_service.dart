@@ -3,6 +3,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/user_model.dart';
 
 class AuthService {
+  // Existing owner account. The matching UID is enforced in firestore.rules.
+  static const ownerUid = 'NIgb3JbjMBXGzaQaGKNfgGwNxyv1';
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
@@ -12,7 +14,14 @@ class AuthService {
     try {
       DocumentSnapshot doc = await _firestore.collection('users').doc(uid).get();
       if (doc.exists && doc.data() != null) {
-        return UserModel.fromMap(doc.data() as Map<String, dynamic>);
+        final profile = UserModel.fromMap(doc.data() as Map<String, dynamic>);
+        final isAdmin = _auth.currentUser?.uid == uid && uid == ownerUid;
+        return UserModel(
+          uid: uid,
+          email: profile.email,
+          name: profile.name,
+          role: isAdmin ? 'admin' : 'customer',
+        );
       }
       return null;
     } catch (e) {
@@ -20,7 +29,7 @@ class AuthService {
     }
   }
 
-  Future<UserModel?> signUp(String email, String password, String name, String role) async {
+  Future<UserModel?> signUp(String email, String password, String name) async {
     try {
       UserCredential userCredential = await _auth.createUserWithEmailAndPassword(
         email: email,
@@ -33,10 +42,11 @@ class AuthService {
           uid: user.uid,
           email: email,
           name: name,
-          role: role,
+          role: 'customer',
         );
 
         await _firestore.collection('users').doc(user.uid).set(newUser.toMap());
+        await _auth.signOut();
         return newUser;
       }
       return null;

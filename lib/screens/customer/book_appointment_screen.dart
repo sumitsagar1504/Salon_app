@@ -15,16 +15,20 @@ class BookAppointmentScreen extends StatefulWidget {
 }
 
 class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
-  DateTime _selectedDate = DateTime.now().add(const Duration(days: 1));
+  DateTime _selectedDate = _nextBookableDate();
   String? _selectedTimeSlot;
   List<String> _bookedSlots = [];
   bool _isLoadingSlots = false;
+  bool _isSubmitting = false;
+  String? _slotError;
 
-  final List<String> _allSlots = [
-    "09:00 AM", "10:00 AM", "11:00 AM",
-    "12:00 PM", "02:00 PM", "03:00 PM",
-    "04:00 PM", "05:00 PM", "06:00 PM"
-  ];
+  final List<String> _allSlots = appointmentSlots;
+
+  static DateTime _nextBookableDate() {
+    var date = DateTime.now().add(const Duration(days: 1));
+    if (date.weekday == DateTime.sunday) date = date.add(const Duration(days: 1));
+    return date;
+  }
 
   @override
   void initState() {
@@ -39,12 +43,21 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
     });
     
     final dateStr = DateFormat('yyyy-MM-dd').format(_selectedDate);
-    final booked = await AppointmentService().getBookedSlots(widget.service.id, dateStr);
-    
-    setState(() {
-      _bookedSlots = booked;
-      _isLoadingSlots = false;
-    });
+    try {
+      final booked = await AppointmentService().getBookedSlots(widget.service.id, dateStr);
+      if (!mounted) return;
+      setState(() {
+        _bookedSlots = booked;
+        _slotError = null;
+        _isLoadingSlots = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _slotError = 'Availability could not be loaded. Please try again.';
+        _isLoadingSlots = false;
+      });
+    }
   }
 
   Future<void> _selectDate() async {
@@ -64,6 +77,7 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
   }
 
   void _confirmBooking() async {
+    if (_isSubmitting || _isLoadingSlots || _slotError != null) return;
     if (_selectedTimeSlot == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please select a time slot')),
@@ -71,18 +85,19 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
       return;
     }
 
+    setState(() => _isSubmitting = true);
     try {
       final user = FirebaseAuth.instance.currentUser;
-      if (user == null) return;
+      if (user == null) throw StateError('Please sign in again.');
 
       final userData = await AuthService().getUserData(user.uid);
-      if (userData == null) return;
+      if (userData == null) throw StateError('Your account could not be loaded.');
 
       final appointment = AppointmentModel(
         id: '',
         customerId: user.uid,
         customerName: userData.name,
-        customerEmail: userData.email,
+        customerEmail: user.email ?? userData.email,
         serviceId: widget.service.id,
         serviceName: widget.service.name,
         servicePrice: widget.service.price,
@@ -102,9 +117,12 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: ${e.toString()}')),
+          SnackBar(content: Text(e is StateError ? e.message : 'Booking failed. Please try again.')),
         );
+        _fetchBookedSlots();
       }
+    } finally {
+      if (mounted) setState(() => _isSubmitting = false);
     }
   }
 
@@ -114,8 +132,10 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
       appBar: AppBar(
         title: const Text('Book Appointment'),
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
+      body: Center(child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 680),
+        child: SingleChildScrollView(
+        padding: const EdgeInsets.all(24.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -163,7 +183,10 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
-            if (_isLoadingSlots)
+            if (_slotError != null) ...[
+              Text(_slotError!, style: TextStyle(color: Theme.of(context).colorScheme.error)),
+              TextButton(onPressed: _fetchBookedSlots, child: const Text('Retry')),
+            ] else if (_isLoadingSlots)
               const Center(child: CircularProgressIndicator())
             else
               Wrap(
@@ -193,16 +216,17 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                onPressed: _confirmBooking,
+                onPressed: _selectedTimeSlot == null || _isSubmitting || _isLoadingSlots || _slotError != null
+                    ? null : _confirmBooking,
                 style: ElevatedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 16),
                 ),
-                child: const Text('Confirm Booking', style: TextStyle(fontSize: 18)),
+                child: Text(_isSubmitting ? 'Booking…' : 'Confirm booking', style: const TextStyle(fontSize: 18)),
               ),
             ),
           ],
         ),
-      ),
+      ))),
     );
   }
 }

@@ -7,15 +7,11 @@ import 'screens/admin/admin_home_screen.dart';
 import 'screens/customer/customer_home_screen.dart';
 import 'services/auth_service.dart';
 import 'models/user_model.dart';
+import 'theme/salon_theme.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  try {
-    await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-    print("Firebase initialized successfully!");
-  } catch (e) {
-    print("Error initializing Firebase: $e");
-  }
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   runApp(const MyApp());
 }
 
@@ -27,20 +23,7 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Salon App',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        useMaterial3: true,
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: Colors.purple,
-          primary: Colors.purple.shade400,
-          secondary: Colors.pink.shade300,
-        ),
-        elevatedButtonTheme: ElevatedButtonThemeData(
-          style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.purple.shade400,
-            foregroundColor: Colors.white,
-          ),
-        ),
-      ),
+      theme: SalonTheme.light,
       home: const AuthWrapper(),
     );
   }

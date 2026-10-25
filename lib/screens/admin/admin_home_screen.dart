@@ -31,15 +31,15 @@ class AdminHomeScreen extends StatelessWidget {
           ),
         ],
       ),
-      body: SingleChildScrollView(
+      body: Center(child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 1000),
+        child: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'Welcome, Admin!',
-              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-            ),
+            Text('Your salon, at a glance',
+              style: Theme.of(context).textTheme.headlineMedium),
             const SizedBox(height: 20),
             
             // STATS ROW
@@ -56,7 +56,15 @@ class AdminHomeScreen extends StatelessWidget {
                   confirmed = snapshot.data!.where((a) => a.status == 'confirmed').length;
                 }
 
-                return Row(
+                if (snapshot.hasError) {
+                  return const Text('Appointment summary could not be loaded.');
+                }
+                if (!snapshot.hasData) {
+                  return const CircularProgressIndicator();
+                }
+                return Wrap(
+                  spacing: 12,
+                  runSpacing: 12,
                   children: [
                     _buildStatCard('Total', total.toString(), Colors.blue),
                     _buildStatCard('Pending', pending.toString(), Colors.orange),
@@ -85,12 +93,13 @@ class AdminHomeScreen extends StatelessWidget {
             ),
           ],
         ),
-      ),
+      ))),
     );
   }
 
   Widget _buildStatCard(String label, String value, Color color) {
-    return Expanded(
+    return SizedBox(
+      width: 170,
       child: Card(
         elevation: 4,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),

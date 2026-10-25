@@ -75,49 +75,24 @@ class _LoginScreenState extends State<LoginScreen> {
     return Scaffold(
       body: Stack(
         children: [
-          // Background Image
-          Container(
-            decoration: const BoxDecoration(
-              image: DecorationImage(
-                image: NetworkImage('https://images.pexels.com/photos/3319891/pexels-photo-3319891.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1'),
-                fit: BoxFit.cover,
-              ),
-            ),
-          ),
-          // Gradient Overlay
-          Container(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [
-                  Colors.black.withOpacity(0.3),
-                  Colors.purple.shade900.withOpacity(0.7),
-                ],
-              ),
-            ),
-          ),
           Center(
             child: SingleChildScrollView(
               padding: const EdgeInsets.all(24.0),
-              child: Column(
+              child: ConstrainedBox(constraints: const BoxConstraints(maxWidth: 460), child: Column(
                 children: [
-                  const Icon(Icons.content_cut, size: 80, color: Colors.white),
+                  Icon(Icons.content_cut, size: 64, color: Theme.of(context).colorScheme.primary),
                   const SizedBox(height: 10),
-                  const Text(
+                  Text(
                     'THE SALON',
                     style: TextStyle(
                       fontSize: 32,
                       fontWeight: FontWeight.w900,
-                      color: Colors.white,
+                    color: Theme.of(context).colorScheme.primary,
                       letterSpacing: 4,
                     ),
                   ),
                   const SizedBox(height: 40),
                   Card(
-                    color: Colors.white.withOpacity(0.9),
-                    elevation: 10,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
                     child: Padding(
                       padding: const EdgeInsets.all(32.0),
                       child: Form(
@@ -127,7 +102,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           children: [
                             const Text(
                               'Welcome Back',
-                              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                              style: TextStyle(fontFamily: 'Georgia', fontSize: 28),
                             ),
                             const SizedBox(height: 30),
                             TextFormField(
@@ -186,7 +161,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                     const TextSpan(text: "Don't have an account? "),
                                     TextSpan(
                                       text: "Sign Up",
-                                      style: TextStyle(color: Colors.purple.shade700, fontWeight: FontWeight.bold),
+                                      style: TextStyle(color: Theme.of(context).colorScheme.primary, fontWeight: FontWeight.bold),
                                     ),
                                   ],
                                 ),
@@ -198,7 +173,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                   ),
                 ],
-              ),
+              )),
             ),
           ),
         ],

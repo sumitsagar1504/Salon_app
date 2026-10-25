@@ -12,6 +12,7 @@ class ServicesScreen extends StatefulWidget {
 
 class _ServicesScreenState extends State<ServicesScreen> {
   final SalonService _salonService = SalonService();
+  String _query = '';
 
   String _getServiceImage(String name) {
     final lowerName = name.toLowerCase();
@@ -32,18 +33,31 @@ class _ServicesScreenState extends State<ServicesScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey.shade50,
       appBar: AppBar(
-        title: const Text('Our Services', style: TextStyle(fontWeight: FontWeight.bold)),
-        elevation: 0,
-        backgroundColor: Colors.transparent,
-        foregroundColor: Colors.black,
+        title: const Text('Our services'),
       ),
-      body: StreamBuilder<List<ServiceModel>>(
+      body: Column(children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 1100),
+            child: TextField(
+              decoration: const InputDecoration(
+                labelText: 'Search services',
+                prefixIcon: Icon(Icons.search),
+              ),
+              onChanged: (value) => setState(() => _query = value.toLowerCase().trim()),
+            ),
+          ),
+        ),
+        Expanded(child: StreamBuilder<List<ServiceModel>>(
         stream: _salonService.getServicesStream(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
+          }
+          if (snapshot.hasError) {
+            return const Center(child: Text('Services could not be loaded. Please try again.'));
           }
           if (!snapshot.hasData || snapshot.data!.isEmpty) {
             return const Center(
@@ -58,14 +72,19 @@ class _ServicesScreenState extends State<ServicesScreen> {
             );
           }
 
-          final services = snapshot.data!;
-          return GridView.builder(
+          final services = snapshot.data!.where((service) =>
+              service.name.toLowerCase().contains(_query) ||
+              service.description.toLowerCase().contains(_query)).toList();
+          if (services.isEmpty) {
+            return const Center(child: Text('No services match your search.'));
+          }
+          return LayoutBuilder(builder: (context, constraints) => GridView.builder(
             padding: const EdgeInsets.all(20),
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 2,
+            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: constraints.maxWidth < 650 ? 1 : constraints.maxWidth < 1050 ? 2 : 3,
               crossAxisSpacing: 20,
               mainAxisSpacing: 20,
-              childAspectRatio: 0.7,
+              mainAxisExtent: 340,
             ),
             itemCount: services.length,
             itemBuilder: (context, index) {
@@ -78,7 +97,7 @@ class _ServicesScreenState extends State<ServicesScreen> {
                   borderRadius: BorderRadius.circular(20),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.05),
+                      color: Colors.black.withValues(alpha: 0.05),
                       blurRadius: 10,
                       offset: const Offset(0, 5),
                     ),
@@ -169,9 +188,9 @@ class _ServicesScreenState extends State<ServicesScreen> {
                 ),
               );
             },
-          );
+          ));
         },
-      ),
+      )),]),
     );
   }
 }

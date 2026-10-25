@@ -13,6 +13,7 @@ class _ManageServicesScreenState extends State<ManageServicesScreen> {
   final SalonService _salonService = SalonService();
 
   void _showServiceDialog([ServiceModel? service]) {
+    final formKey = GlobalKey<FormState>();
     final nameController = TextEditingController(text: service?.name ?? '');
     final descController = TextEditingController(text: service?.description ?? '');
     final priceController = TextEditingController(text: service?.price.toString() ?? '');
@@ -23,29 +24,38 @@ class _ManageServicesScreenState extends State<ManageServicesScreen> {
       builder: (context) => AlertDialog(
         title: Text(service == null ? 'Add Service' : 'Edit Service'),
         content: SingleChildScrollView(
-          child: Column(
+          child: Form(key: formKey, child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              TextField(
+              TextFormField(
                 controller: nameController,
                 decoration: const InputDecoration(labelText: 'Name'),
+                validator: (value) => value == null || value.trim().isEmpty ? 'Enter a name' : null,
               ),
               TextField(
                 controller: descController,
                 decoration: const InputDecoration(labelText: 'Description'),
               ),
-              TextField(
+              TextFormField(
                 controller: priceController,
                 decoration: const InputDecoration(labelText: 'Price (₹)'),
                 keyboardType: TextInputType.number,
+                validator: (value) {
+                  final price = double.tryParse(value ?? '');
+                  return price == null || !price.isFinite || price < 0 ? 'Enter a valid price' : null;
+                },
               ),
-              TextField(
+              TextFormField(
                 controller: durationController,
                 decoration: const InputDecoration(labelText: 'Duration (minutes)'),
                 keyboardType: TextInputType.number,
+                validator: (value) {
+                  final duration = int.tryParse(value ?? '');
+                  return duration == null || duration <= 0 ? 'Enter a valid duration' : null;
+                },
               ),
             ],
-          ),
+          )),
         ),
         actions: [
           TextButton(
@@ -54,6 +64,7 @@ class _ManageServicesScreenState extends State<ManageServicesScreen> {
           ),
           ElevatedButton(
             onPressed: () async {
+              if (!formKey.currentState!.validate()) return;
               final newService = ServiceModel(
                 id: service?.id ?? '',
                 name: nameController.text.trim(),
@@ -63,12 +74,25 @@ class _ManageServicesScreenState extends State<ManageServicesScreen> {
                 imageUrl: service?.imageUrl ?? '',
               );
 
-              if (service == null) {
-                await _salonService.addService(newService);
-              } else {
-                await _salonService.updateService(newService);
+              try {
+                if (service == null) {
+                  await _salonService.addService(newService);
+                } else {
+                  await _salonService.updateService(newService);
+                }
+                if (context.mounted) {
+                  Navigator.pop(context);
+                }
+                if (mounted) {
+                  ScaffoldMessenger.of(this.context).showSnackBar(
+                    const SnackBar(content: Text('Service saved.')));
+                }
+              } catch (_) {
+                if (mounted) {
+                  ScaffoldMessenger.of(this.context).showSnackBar(
+                    const SnackBar(content: Text('Could not save service. Please try again.')));
+                }
               }
-              if (mounted) Navigator.pop(context);
             },
             child: const Text('Save'),
           ),
@@ -90,8 +114,17 @@ class _ManageServicesScreenState extends State<ManageServicesScreen> {
           ),
           ElevatedButton(
             onPressed: () async {
-              await _salonService.deleteService(id);
-              if (mounted) Navigator.pop(context);
+              try {
+                await _salonService.deleteService(id);
+                if (context.mounted) {
+                  Navigator.pop(context);
+                }
+              } catch (_) {
+                if (mounted) {
+                  ScaffoldMessenger.of(this.context).showSnackBar(
+                    const SnackBar(content: Text('Could not delete service.')));
+                }
+              }
             },
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white),
             child: const Text('Delete'),
@@ -116,6 +149,9 @@ class _ManageServicesScreenState extends State<ManageServicesScreen> {
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
+          }
+          if (snapshot.hasError) {
+            return const Center(child: Text('Services could not be loaded.'));
           }
           if (!snapshot.hasData || snapshot.data!.isEmpty) {
             return const Center(child: Text('No services yet. Add one!'));

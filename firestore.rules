@@ -1,0 +1,62 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() { return request.auth != null; }
+    function admin() { return signedIn() && request.auth.uid == 'NIgb3JbjMBXGzaQaGKNfgGwNxyv1'; }
+    function own(uid) { return signedIn() && request.auth.uid == uid; }
+    function slotPath(id) { return /databases/$(database)/documents/bookingSlots/$(id); }
+    function appointmentPath(id) { return /databases/$(database)/documents/appointments/$(id); }
+    function slotId(data) { return data.serviceId + '|' + data.date + '|' + data.timeSlot; }
+    match /users/{uid} {
+      allow get: if own(uid) || admin();
+      allow list: if admin();
+      allow create: if own(uid) && request.resource.data.uid == uid &&
+        request.resource.data.role == 'customer' &&
+        request.resource.data.keys().hasOnly(['uid', 'email', 'name', 'role']);
+      allow update: if own(uid) &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name']);
+      allow delete: if false;
+    }
+    match /services/{id} {
+      allow read: if signedIn();
+      allow write: if admin();
+    }
+    match /appointments/{id} {
+      allow get, list: if admin() ||
+        (signedIn() && resource.data.customerId == request.auth.uid);
+      allow create: if signedIn() &&
+        request.resource.data.customerId == request.auth.uid &&
+        request.resource.data.status == 'pending' &&
+        request.resource.data.customerEmail == request.auth.token.email &&
+        request.resource.data.timeSlot in ['09:00 AM', '10:00 AM', '11:00 AM', '12:00 PM', '02:00 PM', '03:00 PM', '04:00 PM', '05:00 PM', '06:00 PM'] &&
+        request.resource.data.keys().hasOnly([
+          'customerId', 'customerName', 'customerEmail', 'serviceId',
+          'serviceName', 'servicePrice', 'date', 'timeSlot', 'status', 'createdAt']) &&
+        get(/databases/$(database)/documents/services/$(request.resource.data.serviceId)).data.name == request.resource.data.serviceName &&
+        get(/databases/$(database)/documents/services/$(request.resource.data.serviceId)).data.price == request.resource.data.servicePrice &&
+        existsAfter(slotPath(slotId(request.resource.data))) &&
+        getAfter(slotPath(slotId(request.resource.data))).data.appointmentId == id;
+      allow update: if request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['status']) && resource.data.status == 'pending' &&
+        ((admin() && request.resource.data.status in ['confirmed', 'cancelled']) ||
+         (own(resource.data.customerId) && request.resource.data.status == 'cancelled'));
+      allow delete: if false;
+    }
+    match /bookingSlots/{id} {
+      allow get: if signedIn();
+      allow list: if false;
+      allow create: if signedIn() &&
+        request.resource.data.keys().hasOnly(['appointmentId', 'serviceId', 'date', 'timeSlot']) &&
+        id == slotId(request.resource.data) &&
+        getAfter(appointmentPath(request.resource.data.appointmentId)).data.customerId == request.auth.uid &&
+        getAfter(appointmentPath(request.resource.data.appointmentId)).data.status == 'pending' &&
+        getAfter(appointmentPath(request.resource.data.appointmentId)).data.serviceId == request.resource.data.serviceId &&
+        getAfter(appointmentPath(request.resource.data.appointmentId)).data.date == request.resource.data.date &&
+        getAfter(appointmentPath(request.resource.data.appointmentId)).data.timeSlot == request.resource.data.timeSlot;
+      allow delete: if signedIn() &&
+        (admin() || own(get(appointmentPath(resource.data.appointmentId)).data.customerId)) &&
+        getAfter(appointmentPath(resource.data.appointmentId)).data.status == 'cancelled';
+      allow update: if false;
+    }
+  }
+}
