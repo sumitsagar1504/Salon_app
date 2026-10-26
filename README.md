@@ -16,6 +16,10 @@ New bookings reserve a `bookingSlots` document in the same Firestore transaction
 
 Current slot selection uses the application's existing fixed times. It does not model staff capacity, opening hours, or overlapping services longer than one slot. Those require business scheduling data before they can be enforced correctly.
 
+## Transfer the salon owner account
+
+Owner authorization is tied to Firebase Auth UID `NIgb3JbjMBXGzaQaGKNfgGwNxyv1`, so keep that user and change its email when handing the application to a new salon owner. Generate a temporary service-account key from Firebase Console → Project settings → Service accounts and save it outside this repository. In `scripts/migration`, run `npm install`, set `GOOGLE_APPLICATION_CREDENTIALS` to the JSON file's absolute path, then run `node transfer-owner.mjs --email NEW_OWNER_EMAIL` for a dry run. Check the project, UID, and email values before running the same command with `--apply`. The script updates Firebase Authentication and the matching Firestore profile, revokes existing refresh tokens, and never changes the UID. Delete the local service-account JSON after the transfer; never commit or share it. The buyer should then use **Forgot password** in the deployed app to set a private password.
+
 ## Vercel
 
 The web frontend is a static Flutter build. Firebase remains the backend; Vercel does not host a database or API for this project. `vercel.json` configures the repository root, a Flutter 3.38.9 build, `build/web` output, and SPA route fallback. Import the existing GitHub repository into Vercel with Framework Preset **Other** and Root Directory **repository root**. The build script downloads a pinned Flutter SDK during the first build, so check the build time and logs on the selected Vercel plan. Connect the `main` branch for production deployments. No Vercel secret environment variables are required by this code; Firebase client configuration is already in `lib/firebase_options.dart`.
