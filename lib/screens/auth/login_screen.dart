@@ -247,12 +247,15 @@ class _LoginScreenState extends State<LoginScreen> {
                                 ),
                               const SizedBox(height: 16),
                               if (_path == _SignInPath.customer) TextButton(
-                                onPressed: () {
-                                  Navigator.of(context).push(
+                                onPressed: () async {
+                                  final ownerSignIn = await Navigator.of(context).push<bool>(
                                     MaterialPageRoute(
                                       builder: (_) => const SignupScreen(),
                                     ),
                                   );
+                                  if (ownerSignIn == true && context.mounted) {
+                                    setState(() => _path = _SignInPath.owner);
+                                  }
                                 },
                                 child: RichText(
                                   text: TextSpan(

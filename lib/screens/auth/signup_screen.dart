@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../../services/auth_service.dart';
 
+enum _SignupRole { customer, owner }
+
 class SignupScreen extends StatefulWidget {
   const SignupScreen({super.key});
 
@@ -15,8 +17,10 @@ class _SignupScreenState extends State<SignupScreen> {
   final TextEditingController _passwordController = TextEditingController();
   bool _isLoading = false;
   bool _obscurePassword = true;
+  _SignupRole _selectedRole = _SignupRole.customer;
 
   void _signup() async {
+    if (_selectedRole != _SignupRole.customer || _isLoading) return;
     if (!_formKey.currentState!.validate()) return;
 
     setState(() {
@@ -92,14 +96,28 @@ class _SignupScreenState extends State<SignupScreen> {
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             const Text(
-                              'Create customer account',
+                              'Create account',
                               style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
                             ),
-                            const SizedBox(height: 8),
-                            const Text(
-                              'Salon owner access is managed separately by the salon.',
+                            const SizedBox(height: 16),
+                            SegmentedButton<_SignupRole>(
+                              segments: const [
+                                ButtonSegment(value: _SignupRole.customer, label: Text('Customer')),
+                                ButtonSegment(value: _SignupRole.owner, label: Text('Salon owner')),
+                              ],
+                              selected: {_selectedRole},
+                              onSelectionChanged: _isLoading ? null : (selection) {
+                                setState(() => _selectedRole = selection.first);
+                              },
+                            ),
+                            const SizedBox(height: 12),
+                            Text(
+                              _selectedRole == _SignupRole.customer
+                                  ? 'Create an account to book and manage appointments.'
+                                  : 'Owner accounts are set up privately by the salon.',
                               textAlign: TextAlign.center,
                             ),
+                            if (_selectedRole == _SignupRole.customer) ...[
                             const SizedBox(height: 24),
                             TextFormField(
                               controller: _nameController,
@@ -161,6 +179,20 @@ class _SignupScreenState extends State<SignupScreen> {
                               onPressed: () => Navigator.of(context).pop(),
                               child: const Text('Already have an account? Login', style: TextStyle(color: Colors.black87)),
                             ),
+                            ] else ...[
+                              const SizedBox(height: 24),
+                              const Icon(Icons.verified_user_outlined, size: 38),
+                              const SizedBox(height: 12),
+                              const Text(
+                                'If you already have an owner account, sign in with its email and password.',
+                                textAlign: TextAlign.center,
+                              ),
+                              const SizedBox(height: 24),
+                              FilledButton(
+                                onPressed: () => Navigator.of(context).pop(true),
+                                child: const Text('Sign in as salon owner'),
+                              ),
+                            ],
                           ],
                         ),
                       ),
