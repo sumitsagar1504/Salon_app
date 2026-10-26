@@ -8,4 +8,4 @@ if [ ! -x "${FLUTTER_DIR}/bin/flutter" ]; then
 fi
 "${FLUTTER_DIR}/bin/flutter" config --enable-web
 "${FLUTTER_DIR}/bin/flutter" pub get
-"${FLUTTER_DIR}/bin/flutter" build web --release
+"${FLUTTER_DIR}/bin/flutter" build web --release --pwa-strategy=none

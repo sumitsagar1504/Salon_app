@@ -1,10 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:salon_app/theme/salon_theme.dart';
 import 'package:salon_app/screens/auth/login_screen.dart';
 import 'package:salon_app/screens/auth/signup_screen.dart';
+import 'package:salon_app/services/auth_service.dart';
 
 void main() {
+  test('Network authentication errors have a useful message', () {
+    final message = AuthService.errorMessage(
+      FirebaseAuthException(code: 'network-request-failed'),
+    );
+    expect(message, contains('Check your internet connection'));
+    expect(message, isNot(contains('Exception')));
+  });
+
   testWidgets('Primary booking action meets a readable touch target', (tester) async {
     await tester.pumpWidget(MaterialApp(
       theme: SalonTheme.light,

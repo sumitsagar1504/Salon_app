@@ -14,6 +14,28 @@ class AuthService {
 
   Stream<User?> get authStateChanges => _auth.authStateChanges();
 
+  static String errorMessage(Object error) {
+    if (error is FirebaseAuthException) {
+      switch (error.code) {
+        case 'network-request-failed':
+          return 'Could not connect to Firebase. Check your internet connection, disable any VPN or blocker, then try again.';
+        case 'invalid-credential':
+        case 'user-not-found':
+        case 'wrong-password':
+          return 'The email or password is incorrect.';
+        case 'email-already-in-use':
+          return 'An account already exists for this email.';
+        case 'weak-password':
+          return 'Choose a stronger password with at least 6 characters.';
+        case 'too-many-requests':
+          return 'Too many attempts. Please wait and try again.';
+        case 'user-disabled':
+          return 'This account has been disabled.';
+      }
+    }
+    return 'Something went wrong. Please try again.';
+  }
+
   Future<UserModel?> getUserData(String uid) async {
     try {
       DocumentSnapshot doc = await _firestore
