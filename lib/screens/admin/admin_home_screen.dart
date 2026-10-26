@@ -5,6 +5,7 @@ import '../../models/appointment_model.dart';
 import '../auth/login_screen.dart';
 import 'manage_services_screen.dart';
 import 'admin_appointments_screen.dart';
+import 'manage_admins_screen.dart';
 
 class AdminHomeScreen extends StatelessWidget {
   const AdminHomeScreen({super.key});
@@ -90,6 +91,13 @@ class AdminHomeScreen extends StatelessWidget {
               'All Appointments',
               'Confirm or cancel customer bookings',
               () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AdminAppointmentsScreen())),
+            ),
+            _buildMenuCard(
+              context,
+              Icons.admin_panel_settings_outlined,
+              'Manage Admins',
+              'Create separate accounts for salon managers',
+              () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ManageAdminsScreen())),
             ),
           ],
         ),

@@ -34,6 +34,7 @@ migrate_working_dir/
 /coverage/
 *.service-account.json
 service-account*.json
+*-firebase-adminsdk-*.json
 .env
 .env.*
 !.env.example
