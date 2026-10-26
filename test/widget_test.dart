@@ -32,4 +32,18 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Please enter your email'), findsOneWidget);
   });
+
+  testWidgets('Owner sign-in explains account access', (tester) async {
+    await tester.pumpWidget(MaterialApp(
+      theme: SalonTheme.light,
+      home: const LoginScreen(),
+    ));
+
+    expect(find.text('Customer'), findsOneWidget);
+    await tester.tap(find.text('Salon owner'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('Owner access is verified automatically'), findsOneWidget);
+    expect(find.textContaining("Don't have an account?"), findsNothing);
+    expect(find.text('Owner accounts are managed by the salon.'), findsOneWidget);
+  });
 }

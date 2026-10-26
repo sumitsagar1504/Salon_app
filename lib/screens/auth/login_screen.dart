@@ -5,6 +5,8 @@ import 'signup_screen.dart';
 import '../admin/admin_home_screen.dart';
 import '../customer/customer_home_screen.dart';
 
+enum _SignInPath { customer, owner }
+
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
 
@@ -18,6 +20,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController _passwordController = TextEditingController();
   bool _isLoading = false;
   bool _obscurePassword = true;
+  _SignInPath _path = _SignInPath.customer;
 
   void _login() async {
     if (!_formKey.currentState!.validate()) return;
@@ -114,7 +117,32 @@ class _LoginScreenState extends State<LoginScreen> {
                                   fontSize: 28,
                                 ),
                               ),
-                              const SizedBox(height: 30),
+                              const SizedBox(height: 20),
+                              SegmentedButton<_SignInPath>(
+                                segments: const [
+                                  ButtonSegment(
+                                    value: _SignInPath.customer,
+                                    label: Text('Customer'),
+                                  ),
+                                  ButtonSegment(
+                                    value: _SignInPath.owner,
+                                    label: Text('Salon owner'),
+                                  ),
+                                ],
+                                selected: {_path},
+                                onSelectionChanged: (selection) {
+                                  setState(() => _path = selection.first);
+                                },
+                              ),
+                              const SizedBox(height: 12),
+                              Text(
+                                _path == _SignInPath.owner
+                                    ? 'Sign in with your existing owner account. Owner access is verified automatically.'
+                                    : 'Sign in to book services and manage your appointments.',
+                                textAlign: TextAlign.center,
+                                style: Theme.of(context).textTheme.bodySmall,
+                              ),
+                              const SizedBox(height: 24),
                               TextFormField(
                                 controller: _emailController,
                                 decoration: InputDecoration(
@@ -218,7 +246,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                   ),
                                 ),
                               const SizedBox(height: 16),
-                              TextButton(
+                              if (_path == _SignInPath.customer) TextButton(
                                 onPressed: () {
                                   Navigator.of(context).push(
                                     MaterialPageRoute(
@@ -247,6 +275,10 @@ class _LoginScreenState extends State<LoginScreen> {
                                     ],
                                   ),
                                 ),
+                              ) else Text(
+                                'Owner accounts are managed by the salon.',
+                                textAlign: TextAlign.center,
+                                style: Theme.of(context).textTheme.bodySmall,
                               ),
                             ],
                           ),

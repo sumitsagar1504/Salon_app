@@ -92,8 +92,13 @@ class _SignupScreenState extends State<SignupScreen> {
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             const Text(
-                              'Create Account',
+                              'Create customer account',
                               style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+                            ),
+                            const SizedBox(height: 8),
+                            const Text(
+                              'Salon owner access is managed separately by the salon.',
+                              textAlign: TextAlign.center,
                             ),
                             const SizedBox(height: 24),
                             TextFormField(
