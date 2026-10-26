@@ -34,6 +34,9 @@ migrate_working_dir/
 /coverage/
 *.service-account.json
 service-account*.json
+.env
+.env.*
+!.env.example
 scripts/migration/node_modules/
 .vercel/
 

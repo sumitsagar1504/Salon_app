@@ -37,12 +37,13 @@ class AppointmentService {
   Stream<List<AppointmentModel>> getCustomerAppointments(String customerId) {
     return _appointmentsCollection
         .where('customerId', isEqualTo: customerId)
-        .orderBy('date', descending: true)
         .snapshots()
         .map((snapshot) {
-      return snapshot.docs.map((doc) {
+      final appointments = snapshot.docs.map((doc) {
         return AppointmentModel.fromMap(doc.data() as Map<String, dynamic>, doc.id);
       }).toList();
+      appointments.sort((a, b) => b.date.compareTo(a.date));
+      return appointments;
     });
   }
 

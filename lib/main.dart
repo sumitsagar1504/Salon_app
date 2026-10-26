@@ -21,7 +21,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Salon App',
+      title: 'The Salon',
       debugShowCheckedModeBanner: false,
       theme: SalonTheme.light,
       home: const AuthWrapper(),
