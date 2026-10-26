@@ -19,8 +19,13 @@ service cloud.firestore {
         ((own(uid) && request.resource.data.role == 'customer') ||
          (admin() && request.resource.data.role == 'admin' &&
           existsAfter(/databases/$(database)/documents/admins/$(uid))));
-      allow update: if own(uid) &&
-        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name']);
+      allow update: if
+        (own(uid) && request.resource.data.diff(resource.data)
+          .affectedKeys().hasOnly(['name'])) ||
+        (admin() && resource.data.role == 'customer' &&
+          request.resource.data.role == 'admin' &&
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['role']) &&
+          existsAfter(/databases/$(database)/documents/admins/$(uid)));
       allow delete: if false;
     }
     match /admins/{uid} {
@@ -35,6 +40,18 @@ service cloud.firestore {
         getAfter(/databases/$(database)/documents/users/$(uid)).data.email ==
           request.resource.data.email;
       allow update, delete: if false;
+    }
+    match /adminRequests/{uid} {
+      allow get: if own(uid) || admin();
+      allow list: if admin();
+      allow create: if own(uid) &&
+        request.resource.data.uid == uid &&
+        request.resource.data.email == request.auth.token.email &&
+        request.resource.data.status == 'pending' &&
+        request.resource.data.keys().hasOnly([
+          'uid', 'email', 'name', 'status', 'createdAt']);
+      allow delete: if admin();
+      allow update: if false;
     }
     match /services/{id} {
       allow read: if signedIn();

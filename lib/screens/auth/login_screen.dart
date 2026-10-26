@@ -41,6 +41,19 @@ class _LoginScreenState extends State<LoginScreen> {
             Navigator.of(context).pushReplacement(
               MaterialPageRoute(builder: (_) => const AdminHomeScreen()),
             );
+          } else if (_path == _SignInPath.owner) {
+            final pending = await AuthService().hasPendingAdminRequest(userModel.uid);
+            await AuthService().signOut();
+            if (!mounted) return;
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(
+                  pending
+                      ? 'Your owner request is waiting for approval from an existing admin.'
+                      : 'This account does not have salon owner access.',
+                ),
+              ),
+            );
           } else {
             Navigator.of(context).pushReplacement(
               MaterialPageRoute(builder: (_) => const CustomerHomeScreen()),
@@ -278,10 +291,15 @@ class _LoginScreenState extends State<LoginScreen> {
                                     ],
                                   ),
                                 ),
-                              ) else Text(
-                                'Owner accounts are managed by the salon.',
-                                textAlign: TextAlign.center,
-                                style: Theme.of(context).textTheme.bodySmall,
+                              ) else TextButton(
+                                onPressed: () async {
+                                  await Navigator.of(context).push(
+                                    MaterialPageRoute(
+                                      builder: (_) => const SignupScreen(owner: true),
+                                    ),
+                                  );
+                                },
+                                child: const Text('Need an owner account? Request access'),
                               ),
                             ],
                           ),

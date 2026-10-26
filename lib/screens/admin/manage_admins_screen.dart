@@ -14,6 +14,54 @@ class ManageAdminsScreen extends StatefulWidget {
 class _ManageAdminsScreenState extends State<ManageAdminsScreen> {
   final _authService = AuthService();
 
+  Future<void> _approveRequest(Map<String, dynamic> request) async {
+    try {
+      await _authService.approveAdminRequest(request);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('${request['name']} now has admin access.')),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('The owner request could not be approved.')),
+      );
+    }
+  }
+
+  Widget _buildPendingRequests() {
+    return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+      stream: _authService.getAdminRequests(),
+      builder: (context, snapshot) {
+        if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+          return const SizedBox.shrink();
+        }
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Pending owner requests', style: Theme.of(context).textTheme.titleLarge),
+            const SizedBox(height: 8),
+            ...snapshot.data!.docs.map((document) {
+              final request = document.data();
+              return Card(
+                child: ListTile(
+                  leading: const CircleAvatar(child: Icon(Icons.hourglass_top)),
+                  title: Text(request['name'] as String? ?? 'Owner request'),
+                  subtitle: Text(request['email'] as String? ?? ''),
+                  trailing: FilledButton(
+                    onPressed: () => _approveRequest(request),
+                    child: const Text('Approve'),
+                  ),
+                ),
+              );
+            }),
+            const SizedBox(height: 24),
+          ],
+        );
+      },
+    );
+  }
+
   Future<void> _showCreateAdminDialog() async {
     final nameController = TextEditingController();
     final emailController = TextEditingController();
@@ -166,6 +214,7 @@ class _ManageAdminsScreenState extends State<ManageAdminsScreen> {
                     'Create separate accounts for trusted salon managers. Each person sets their own password.',
                   ),
                   const SizedBox(height: 20),
+                  _buildPendingRequests(),
                   Card(
                     child: ListTile(
                       leading: const CircleAvatar(child: Icon(Icons.shield_outlined)),

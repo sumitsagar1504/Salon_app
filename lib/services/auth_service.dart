@@ -38,7 +38,12 @@ class AuthService {
     }
   }
 
-  Future<UserModel?> signUp(String email, String password, String name) async {
+  Future<UserModel?> signUp(
+    String email,
+    String password,
+    String name, {
+    bool requestAdminAccess = false,
+  }) async {
     try {
       UserCredential userCredential = await _auth
           .createUserWithEmailAndPassword(email: email, password: password);
@@ -52,7 +57,23 @@ class AuthService {
           role: 'customer',
         );
 
-        await _firestore.collection('users').doc(user.uid).set(newUser.toMap());
+        final batch = _firestore.batch();
+        batch.set(_firestore.collection('users').doc(user.uid), newUser.toMap());
+        if (requestAdminAccess) {
+          batch.set(_firestore.collection('adminRequests').doc(user.uid), {
+            'uid': user.uid,
+            'email': email.trim().toLowerCase(),
+            'name': name.trim(),
+            'status': 'pending',
+            'createdAt': FieldValue.serverTimestamp(),
+          });
+        }
+        try {
+          await batch.commit();
+        } catch (_) {
+          await user.delete();
+          rethrow;
+        }
         await _auth.signOut();
         return newUser;
       }
@@ -85,6 +106,38 @@ class AuthService {
 
   Stream<QuerySnapshot<Map<String, dynamic>>> getAdmins() {
     return _firestore.collection('admins').orderBy('name').snapshots();
+  }
+
+  Stream<QuerySnapshot<Map<String, dynamic>>> getAdminRequests() {
+    return _firestore
+        .collection('adminRequests')
+        .where('status', isEqualTo: 'pending')
+        .snapshots();
+  }
+
+  Future<bool> hasPendingAdminRequest(String uid) async {
+    final request = await _firestore.collection('adminRequests').doc(uid).get();
+    return request.exists && request.data()?['status'] == 'pending';
+  }
+
+  Future<void> approveAdminRequest(Map<String, dynamic> request) async {
+    final creator = _auth.currentUser;
+    if (creator == null) throw StateError('You must be signed in.');
+    final uid = request['uid'] as String;
+    final userRef = _firestore.collection('users').doc(uid);
+    final adminRef = _firestore.collection('admins').doc(uid);
+    final requestRef = _firestore.collection('adminRequests').doc(uid);
+    final batch = _firestore.batch();
+    batch.update(userRef, {'role': 'admin'});
+    batch.set(adminRef, {
+      'uid': uid,
+      'email': request['email'],
+      'name': request['name'],
+      'createdAt': FieldValue.serverTimestamp(),
+      'createdBy': creator.uid,
+    });
+    batch.delete(requestRef);
+    await batch.commit();
   }
 
   Future<bool> createAdminAccount({

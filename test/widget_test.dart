@@ -45,10 +45,10 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.textContaining('Owner access is verified automatically'), findsOneWidget);
     expect(find.textContaining("Don't have an account?"), findsNothing);
-    expect(find.text('Owner accounts are managed by the salon.'), findsOneWidget);
+    expect(find.text('Need an owner account? Request access'), findsOneWidget);
   });
 
-  testWidgets('Signup asks for a role and keeps owner setup private', (tester) async {
+  testWidgets('Signup lets an owner submit an approval request', (tester) async {
     await tester.pumpWidget(MaterialApp(
       theme: SalonTheme.light,
       home: const SignupScreen(),
@@ -60,8 +60,11 @@ void main() {
 
     await tester.tap(find.text('Salon owner'));
     await tester.pumpAndSettle();
-    expect(find.text('Full Name'), findsNothing);
-    expect(find.text('Owner accounts are set up privately by the salon.'), findsOneWidget);
-    expect(find.text('Sign in as salon owner'), findsOneWidget);
+    expect(find.text('Full Name'), findsOneWidget);
+    expect(
+      find.text('Create an owner request. An existing admin must approve it.'),
+      findsOneWidget,
+    );
+    expect(find.text('REQUEST OWNER ACCOUNT'), findsOneWidget);
   });
 }

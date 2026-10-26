@@ -4,7 +4,9 @@ import '../../services/auth_service.dart';
 enum _SignupRole { customer, owner }
 
 class SignupScreen extends StatefulWidget {
-  const SignupScreen({super.key});
+  const SignupScreen({super.key, this.owner = false});
+
+  final bool owner;
 
   @override
   State<SignupScreen> createState() => _SignupScreenState();
@@ -17,10 +19,16 @@ class _SignupScreenState extends State<SignupScreen> {
   final TextEditingController _passwordController = TextEditingController();
   bool _isLoading = false;
   bool _obscurePassword = true;
-  _SignupRole _selectedRole = _SignupRole.customer;
+  late _SignupRole _selectedRole;
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedRole = widget.owner ? _SignupRole.owner : _SignupRole.customer;
+  }
 
   void _signup() async {
-    if (_selectedRole != _SignupRole.customer || _isLoading) return;
+    if (_isLoading) return;
     if (!_formKey.currentState!.validate()) return;
 
     setState(() {
@@ -32,14 +40,21 @@ class _SignupScreenState extends State<SignupScreen> {
         _emailController.text.trim(),
         _passwordController.text.trim(),
         _nameController.text.trim(),
+        requestAdminAccess: _selectedRole == _SignupRole.owner,
       );
 
       if (mounted) {
         if (userModel != null) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Account created successfully! Please login.')),
+            SnackBar(
+              content: Text(
+                _selectedRole == _SignupRole.owner
+                    ? 'Owner account requested. An existing admin must approve it before owner sign-in.'
+                    : 'Account created successfully! Please login.',
+              ),
+            ),
           );
-          Navigator.of(context).pop();
+          Navigator.of(context).pop(_selectedRole == _SignupRole.owner);
         }
       }
     } catch (e) {
@@ -114,10 +129,9 @@ class _SignupScreenState extends State<SignupScreen> {
                             Text(
                               _selectedRole == _SignupRole.customer
                                   ? 'Create an account to book and manage appointments.'
-                                  : 'Owner accounts are set up privately by the salon.',
+                                  : 'Create an owner request. An existing admin must approve it.',
                               textAlign: TextAlign.center,
                             ),
-                            if (_selectedRole == _SignupRole.customer) ...[
                             const SizedBox(height: 24),
                             TextFormField(
                               controller: _nameController,
@@ -172,27 +186,18 @@ class _SignupScreenState extends State<SignupScreen> {
                                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
                                   elevation: 5,
                                 ),
-                                child: const Text('SIGN UP', style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.2)),
+                                child: Text(
+                                  _selectedRole == _SignupRole.owner
+                                      ? 'REQUEST OWNER ACCOUNT'
+                                      : 'SIGN UP',
+                                  style: const TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.2),
+                                ),
                               ),
                             const SizedBox(height: 16),
                             TextButton(
                               onPressed: () => Navigator.of(context).pop(),
                               child: const Text('Already have an account? Login', style: TextStyle(color: Colors.black87)),
                             ),
-                            ] else ...[
-                              const SizedBox(height: 24),
-                              const Icon(Icons.verified_user_outlined, size: 38),
-                              const SizedBox(height: 12),
-                              const Text(
-                                'If you already have an owner account, sign in with its email and password.',
-                                textAlign: TextAlign.center,
-                              ),
-                              const SizedBox(height: 24),
-                              FilledButton(
-                                onPressed: () => Navigator.of(context).pop(true),
-                                child: const Text('Sign in as salon owner'),
-                              ),
-                            ],
                           ],
                         ),
                       ),
