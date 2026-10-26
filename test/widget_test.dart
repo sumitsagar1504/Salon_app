@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:salon_app/theme/salon_theme.dart';
+import 'package:salon_app/screens/auth/login_screen.dart';
 
 void main() {
   testWidgets('Primary booking action meets a readable touch target', (tester) async {
@@ -15,5 +16,20 @@ void main() {
     final button = tester.getSize(find.byType(ElevatedButton));
     expect(button.height, greaterThanOrEqualTo(48));
     expect(find.text('Book a service'), findsOneWidget);
+  });
+
+  testWidgets('Password reset asks for a valid email', (tester) async {
+    await tester.pumpWidget(MaterialApp(
+      theme: SalonTheme.light,
+      home: const LoginScreen(),
+    ));
+
+    await tester.tap(find.text('Forgot password?'));
+    await tester.pumpAndSettle();
+    expect(find.text('Reset your password'), findsOneWidget);
+
+    await tester.tap(find.text('Send reset link'));
+    await tester.pumpAndSettle();
+    expect(find.text('Please enter your email'), findsOneWidget);
   });
 }

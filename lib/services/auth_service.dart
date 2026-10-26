@@ -12,7 +12,10 @@ class AuthService {
 
   Future<UserModel?> getUserData(String uid) async {
     try {
-      DocumentSnapshot doc = await _firestore.collection('users').doc(uid).get();
+      DocumentSnapshot doc = await _firestore
+          .collection('users')
+          .doc(uid)
+          .get();
       if (doc.exists && doc.data() != null) {
         final profile = UserModel.fromMap(doc.data() as Map<String, dynamic>);
         final isAdmin = _auth.currentUser?.uid == uid && uid == ownerUid;
@@ -31,10 +34,8 @@ class AuthService {
 
   Future<UserModel?> signUp(String email, String password, String name) async {
     try {
-      UserCredential userCredential = await _auth.createUserWithEmailAndPassword(
-        email: email,
-        password: password,
-      );
+      UserCredential userCredential = await _auth
+          .createUserWithEmailAndPassword(email: email, password: password);
 
       User? user = userCredential.user;
       if (user != null) {
@@ -70,6 +71,10 @@ class AuthService {
     } catch (e) {
       throw Exception(e.toString());
     }
+  }
+
+  Future<void> sendPasswordResetEmail(String email) async {
+    await _auth.sendPasswordResetEmail(email: email.trim());
   }
 
   Future<void> signOut() async {
