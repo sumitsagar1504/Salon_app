@@ -15,6 +15,21 @@ void main() {
     expect(message, isNot(contains('Exception')));
   });
 
+  test('Sign-in failures keep their specific guidance', () {
+    expect(
+      AuthService.errorMessage(
+        FirebaseAuthException(code: 'invalid-credential'),
+      ),
+      'The email or password is incorrect.',
+    );
+    expect(
+      AuthService.errorMessage(
+        FirebaseException(plugin: 'cloud_firestore', code: 'permission-denied'),
+      ),
+      contains('salon data access was denied'),
+    );
+  });
+
   testWidgets('Primary booking action meets a readable touch target', (
     tester,
   ) async {

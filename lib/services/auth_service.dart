@@ -33,35 +33,35 @@ class AuthService {
           return 'This account has been disabled.';
       }
     }
+    if (error is FirebaseException) {
+      switch (error.code) {
+        case 'permission-denied':
+          return 'Your account signed in, but salon data access was denied. Please contact the salon administrator.';
+        case 'unavailable':
+        case 'deadline-exceeded':
+          return 'Salon data is temporarily unavailable. Check your connection and try again.';
+      }
+    }
     return 'Something went wrong. Please try again.';
   }
 
   Future<UserModel?> getUserData(String uid) async {
-    try {
-      DocumentSnapshot doc = await _firestore
-          .collection('users')
-          .doc(uid)
-          .get();
-      if (doc.exists && doc.data() != null) {
-        final profile = UserModel.fromMap(doc.data() as Map<String, dynamic>);
-        final adminRecord = await _firestore
-            .collection('admins')
-            .doc(uid)
-            .get();
-        final isAdmin =
-            (_auth.currentUser?.uid == uid && uid == ownerUid) ||
-            adminRecord.exists;
-        return UserModel(
-          uid: uid,
-          email: profile.email,
-          name: profile.name,
-          role: isAdmin ? 'admin' : 'customer',
-        );
-      }
-      return null;
-    } catch (e) {
-      throw Exception('Failed to fetch user data: $e');
-    }
+    final doc = await _firestore.collection('users').doc(uid).get();
+    if (!doc.exists || doc.data() == null) return null;
+
+    final profile = UserModel.fromMap(doc.data()!);
+    // The original owner existed before /admins records were introduced.
+    // Avoid a needless lookup that older published rules may deny.
+    final isPrimaryOwner = _auth.currentUser?.uid == uid && uid == ownerUid;
+    final isAdmin =
+        isPrimaryOwner ||
+        (await _firestore.collection('admins').doc(uid).get()).exists;
+    return UserModel(
+      uid: uid,
+      email: profile.email,
+      name: profile.name,
+      role: isAdmin ? 'admin' : 'customer',
+    );
   }
 
   Future<UserModel?> signUp(
@@ -70,63 +70,55 @@ class AuthService {
     String name, {
     bool requestAdminAccess = false,
   }) async {
-    try {
-      UserCredential userCredential = await _auth
-          .createUserWithEmailAndPassword(email: email, password: password);
+    final normalizedEmail = email.trim().toLowerCase();
+    UserCredential userCredential = await _auth.createUserWithEmailAndPassword(
+      email: normalizedEmail,
+      password: password,
+    );
 
-      User? user = userCredential.user;
-      if (user != null) {
-        UserModel newUser = UserModel(
-          uid: user.uid,
-          email: email,
-          name: name,
-          role: 'customer',
-        );
+    User? user = userCredential.user;
+    if (user != null) {
+      UserModel newUser = UserModel(
+        uid: user.uid,
+        email: normalizedEmail,
+        name: name.trim(),
+        role: 'customer',
+      );
 
-        final batch = _firestore.batch();
-        batch.set(
-          _firestore.collection('users').doc(user.uid),
-          newUser.toMap(),
-        );
-        if (requestAdminAccess) {
-          batch.set(_firestore.collection('adminRequests').doc(user.uid), {
-            'uid': user.uid,
-            'email': email.trim().toLowerCase(),
-            'name': name.trim(),
-            'status': 'pending',
-            'createdAt': FieldValue.serverTimestamp(),
-          });
-        }
-        try {
-          await batch.commit();
-        } catch (_) {
-          await user.delete();
-          rethrow;
-        }
-        await _auth.signOut();
-        return newUser;
+      final batch = _firestore.batch();
+      batch.set(_firestore.collection('users').doc(user.uid), newUser.toMap());
+      if (requestAdminAccess) {
+        batch.set(_firestore.collection('adminRequests').doc(user.uid), {
+          'uid': user.uid,
+          'email': normalizedEmail,
+          'name': name.trim(),
+          'status': 'pending',
+          'createdAt': FieldValue.serverTimestamp(),
+        });
       }
-      return null;
-    } catch (e) {
-      throw Exception(e.toString());
+      try {
+        await batch.commit();
+      } catch (_) {
+        await user.delete();
+        rethrow;
+      }
+      await _auth.signOut();
+      return newUser;
     }
+    return null;
   }
 
   Future<UserModel?> signIn(String email, String password) async {
-    try {
-      UserCredential userCredential = await _auth.signInWithEmailAndPassword(
-        email: email,
-        password: password,
-      );
+    UserCredential userCredential = await _auth.signInWithEmailAndPassword(
+      email: email,
+      password: password,
+    );
 
-      User? user = userCredential.user;
-      if (user != null) {
-        return await getUserData(user.uid);
-      }
-      return null;
-    } catch (e) {
-      throw Exception(e.toString());
+    User? user = userCredential.user;
+    if (user != null) {
+      return await getUserData(user.uid);
     }
+    return null;
   }
 
   Future<void> sendPasswordResetEmail(String email) async {
