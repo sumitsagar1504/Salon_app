@@ -23,6 +23,9 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
   bool _isLoadingSlots = false;
   bool _isSubmitting = false;
   String? _slotError;
+  bool _priorityRequested = false;
+  final TextEditingController _priorityNoteController = TextEditingController();
+  String? _priorityError;
 
   final List<String> _allSlots = appointmentSlots;
 
@@ -38,6 +41,12 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
   void initState() {
     super.initState();
     _fetchBookedSlots();
+  }
+
+  @override
+  void dispose() {
+    _priorityNoteController.dispose();
+    super.dispose();
   }
 
   Future<void> _fetchBookedSlots() async {
@@ -91,6 +100,14 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
       );
       return;
     }
+    if (_priorityRequested &&
+        (_priorityNoteController.text.trim().length < 10 ||
+            _priorityNoteController.text.trim().length > 500)) {
+      setState(
+        () => _priorityError = 'Describe your request in 10 to 500 characters.',
+      );
+      return;
+    }
 
     setState(() => _isSubmitting = true);
     try {
@@ -113,13 +130,18 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
         date: DateFormat('yyyy-MM-dd').format(_selectedDate),
         timeSlot: _selectedTimeSlot!,
         status: 'pending',
+        priorityRequested: _priorityRequested,
+        priorityNote: _priorityRequested
+            ? _priorityNoteController.text.trim()
+            : '',
+        priorityStatus: _priorityRequested ? 'requested' : 'none',
       );
 
       await AppointmentService().bookAppointment(appointment);
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Appointment booked successfully!')),
+          const SnackBar(content: Text('Booking request sent to the salon.')),
         );
         Navigator.pop(context);
       }
@@ -251,9 +273,74 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
                       );
                     }).toList(),
                   ),
-                const SizedBox(height: 40),
+                const SizedBox(height: 30),
 
-                // Section 4: Confirm Button
+                const SectionLabel('3 · Your preferences'),
+                const SizedBox(height: 10),
+                Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(12),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        SwitchListTile.adaptive(
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                          ),
+                          title: const Text('Request priority service'),
+                          subtitle: const Text(
+                            'Describe what you need. The salon will quote any extra fee before you decide.',
+                          ),
+                          value: _priorityRequested,
+                          onChanged: _isSubmitting
+                              ? null
+                              : (value) => setState(() {
+                                  _priorityRequested = value;
+                                  _priorityError = null;
+                                }),
+                        ),
+                        if (_priorityRequested) ...[
+                          const SizedBox(height: 8),
+                          TextField(
+                            controller: _priorityNoteController,
+                            minLines: 2,
+                            maxLines: 4,
+                            maxLength: 500,
+                            decoration: InputDecoration(
+                              labelText: 'What do you need?',
+                              hintText:
+                                  'Tell the salon about your timing or service needs',
+                              errorText: _priorityError,
+                            ),
+                            onChanged: (_) {
+                              if (_priorityError != null) {
+                                setState(() => _priorityError = null);
+                              }
+                            },
+                          ),
+                          const SizedBox(height: 6),
+                          const Text(
+                            'Your booking stays pending until the salon quotes a fee and you accept it. No extra charge is applied automatically.',
+                            style: TextStyle(color: SalonTheme.taupe),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                Text(
+                  'Base service price: ₹${widget.service.price}',
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
+                if (_priorityRequested)
+                  const Text(
+                    'Priority fee: pending salon quote',
+                    style: TextStyle(color: SalonTheme.taupe),
+                  ),
+                const SizedBox(height: 24),
+
+                // Section 4: Send request
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
@@ -270,7 +357,9 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
                     child: Text(
                       _isSubmitting
                           ? 'Reserving your time…'
-                          : 'Confirm booking',
+                          : _priorityRequested
+                          ? 'Send booking and priority request'
+                          : 'Request appointment',
                     ),
                   ),
                 ),

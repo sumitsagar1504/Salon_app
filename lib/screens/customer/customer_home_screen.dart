@@ -9,6 +9,7 @@ import 'my_appointments_screen.dart';
 import 'services_screen.dart';
 import '../../theme/salon_theme.dart';
 import '../../widgets/salon_ui.dart';
+import '../../widgets/appointment_notifications.dart';
 
 class CustomerHomeScreen extends StatelessWidget {
   const CustomerHomeScreen({super.key});
@@ -21,6 +22,8 @@ class CustomerHomeScreen extends StatelessWidget {
       appBar: AppBar(
         title: const SalonBrand(compact: true),
         actions: [
+          if (uid != null)
+            AppointmentNotifications(owner: false, customerId: uid),
           IconButton(
             tooltip: 'Sign out',
             icon: const Icon(Icons.logout),

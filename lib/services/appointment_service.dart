@@ -97,6 +97,12 @@ class AppointmentService {
       if (data['status'] != 'pending') {
         throw StateError('Only pending appointments can be changed.');
       }
+      if (status == 'confirmed' &&
+          data['priorityRequested'] == true &&
+          data['priorityStatus'] != 'accepted' &&
+          data['priorityStatus'] != 'declined') {
+        throw StateError('Wait for the customer to accept the priority quote.');
+      }
       final lock = FirebaseFirestore.instance
           .collection('bookingSlots')
           .doc('${data['serviceId']}|${data['date']}|${data['timeSlot']}');
@@ -108,6 +114,45 @@ class AppointmentService {
               appointmentId) {
         transaction.delete(lock);
       }
+    });
+  }
+
+  Future<void> quotePriority(String appointmentId, double fee) async {
+    if (!fee.isFinite || fee <= 0 || fee > 100000) {
+      throw ArgumentError('Enter an extra fee between ₹1 and ₹100,000.');
+    }
+    final doc = _appointmentsCollection.doc(appointmentId);
+    await FirebaseFirestore.instance.runTransaction((transaction) async {
+      final snapshot = await transaction.get(doc);
+      if (!snapshot.exists) throw StateError('Appointment no longer exists.');
+      final data = snapshot.data() as Map<String, dynamic>;
+      if (data['status'] != 'pending' ||
+          data['priorityRequested'] != true ||
+          data['priorityStatus'] != 'requested') {
+        throw StateError('This priority request can no longer be quoted.');
+      }
+      transaction.update(doc, {'priorityFee': fee, 'priorityStatus': 'quoted'});
+    });
+  }
+
+  Future<void> respondToPriorityQuote(
+    String appointmentId, {
+    required bool accept,
+  }) async {
+    final doc = _appointmentsCollection.doc(appointmentId);
+    await FirebaseFirestore.instance.runTransaction((transaction) async {
+      final snapshot = await transaction.get(doc);
+      if (!snapshot.exists) throw StateError('Appointment no longer exists.');
+      final data = snapshot.data() as Map<String, dynamic>;
+      if (data['status'] != 'pending' ||
+          data['priorityRequested'] != true ||
+          data['priorityStatus'] != 'quoted') {
+        throw StateError('This priority quote is no longer available.');
+      }
+      transaction.update(doc, {
+        'priorityStatus': accept ? 'accepted' : 'declined',
+        if (!accept) 'priorityFee': 0,
+      });
     });
   }
 

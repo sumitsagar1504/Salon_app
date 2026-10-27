@@ -39,6 +39,7 @@ service-account*.json
 .env.*
 !.env.example
 scripts/migration/node_modules/
+functions/node_modules/
 .vercel/
 
 # Symbolication related

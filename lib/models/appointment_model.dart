@@ -11,7 +11,14 @@ class AppointmentModel {
   final String date;
   final String timeSlot;
   final String status;
+  final bool priorityRequested;
+  final String priorityNote;
+  final double priorityFee;
+  final String priorityStatus;
   final DateTime? createdAt;
+
+  double get totalPrice =>
+      servicePrice + (priorityStatus == 'accepted' ? priorityFee : 0);
 
   AppointmentModel({
     required this.id,
@@ -24,6 +31,10 @@ class AppointmentModel {
     required this.date,
     required this.timeSlot,
     required this.status,
+    this.priorityRequested = false,
+    this.priorityNote = '',
+    this.priorityFee = 0,
+    this.priorityStatus = 'none',
     this.createdAt,
   });
 
@@ -38,6 +49,10 @@ class AppointmentModel {
       'date': date,
       'timeSlot': timeSlot,
       'status': status,
+      'priorityRequested': priorityRequested,
+      'priorityNote': priorityNote,
+      'priorityFee': priorityFee,
+      'priorityStatus': priorityStatus,
       'createdAt': createdAt != null
           ? Timestamp.fromDate(createdAt!)
           : FieldValue.serverTimestamp(),
@@ -56,6 +71,10 @@ class AppointmentModel {
       date: map['date'] ?? '',
       timeSlot: map['timeSlot'] ?? '',
       status: map['status'] ?? 'pending',
+      priorityRequested: map['priorityRequested'] == true,
+      priorityNote: map['priorityNote'] as String? ?? '',
+      priorityFee: (map['priorityFee'] as num?)?.toDouble() ?? 0,
+      priorityStatus: map['priorityStatus'] as String? ?? 'none',
       createdAt: (map['createdAt'] as Timestamp?)?.toDate(),
     );
   }
@@ -71,6 +90,10 @@ class AppointmentModel {
     String? date,
     String? timeSlot,
     String? status,
+    bool? priorityRequested,
+    String? priorityNote,
+    double? priorityFee,
+    String? priorityStatus,
     DateTime? createdAt,
   }) {
     return AppointmentModel(
@@ -84,6 +107,10 @@ class AppointmentModel {
       date: date ?? this.date,
       timeSlot: timeSlot ?? this.timeSlot,
       status: status ?? this.status,
+      priorityRequested: priorityRequested ?? this.priorityRequested,
+      priorityNote: priorityNote ?? this.priorityNote,
+      priorityFee: priorityFee ?? this.priorityFee,
+      priorityStatus: priorityStatus ?? this.priorityStatus,
       createdAt: createdAt ?? this.createdAt,
     );
   }

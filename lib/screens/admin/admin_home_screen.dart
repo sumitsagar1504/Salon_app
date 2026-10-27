@@ -8,6 +8,7 @@ import 'admin_appointments_screen.dart';
 import 'manage_admins_screen.dart';
 import '../../theme/salon_theme.dart';
 import '../../widgets/salon_ui.dart';
+import '../../widgets/appointment_notifications.dart';
 
 class AdminHomeScreen extends StatelessWidget {
   const AdminHomeScreen({super.key});
@@ -20,6 +21,7 @@ class AdminHomeScreen extends StatelessWidget {
       appBar: AppBar(
         title: const SalonBrand(compact: true),
         actions: [
+          const AppointmentNotifications(owner: true),
           IconButton(
             icon: const Icon(Icons.logout),
             onPressed: () async {

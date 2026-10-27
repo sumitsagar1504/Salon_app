@@ -16,6 +16,90 @@ class AdminAppointmentsScreen extends StatefulWidget {
 class _AdminAppointmentsScreenState extends State<AdminAppointmentsScreen> {
   final AppointmentService _appointmentService = AppointmentService();
 
+  Future<void> _quotePriority(AppointmentModel appointment) async {
+    final controller = TextEditingController();
+    final formKey = GlobalKey<FormState>();
+    final fee = await showDialog<double>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Quote priority fee'),
+        scrollable: true,
+        content: Form(
+          key: formKey,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(appointment.priorityNote),
+              const SizedBox(height: 16),
+              Text('Base price: ₹${appointment.servicePrice}'),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: controller,
+                autofocus: true,
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
+                decoration: const InputDecoration(
+                  labelText: 'Extra fee (₹)',
+                  helperText: 'Customer must accept before confirmation',
+                ),
+                validator: (value) {
+                  final amount = double.tryParse(value?.trim() ?? '');
+                  return amount == null ||
+                          !amount.isFinite ||
+                          amount <= 0 ||
+                          amount > 100000
+                      ? 'Enter ₹1 to ₹100,000'
+                      : null;
+                },
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () {
+              if (formKey.currentState!.validate()) {
+                Navigator.pop(
+                  dialogContext,
+                  double.parse(controller.text.trim()),
+                );
+              }
+            },
+            child: const Text('Send quote'),
+          ),
+        ],
+      ),
+    );
+    controller.dispose();
+    if (fee == null) return;
+    try {
+      await _appointmentService.quotePriority(appointment.id, fee);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Priority quote sent to the customer.')),
+        );
+      }
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              error is StateError
+                  ? error.message
+                  : 'Could not send quote. Try again.',
+            ),
+          ),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return DefaultTabController(
@@ -130,34 +214,71 @@ class _AdminAppointmentsScreenState extends State<AdminAppointmentsScreen> {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      'Price: ₹${appointment.servicePrice}',
+                      'Base price: ₹${appointment.servicePrice}',
                       style: const TextStyle(
                         color: SalonTheme.blush,
                         fontWeight: FontWeight.w700,
                       ),
                     ),
+                    if (appointment.priorityRequested) ...[
+                      const SizedBox(height: 12),
+                      const SectionLabel('Priority request'),
+                      const SizedBox(height: 6),
+                      Text(appointment.priorityNote),
+                      const SizedBox(height: 6),
+                      Text(switch (appointment.priorityStatus) {
+                        'requested' => 'Extra fee awaiting your quote',
+                        'quoted' =>
+                          '₹${appointment.priorityFee} extra quoted · Awaiting customer',
+                        'accepted' =>
+                          'Quote accepted · Total ₹${appointment.totalPrice}',
+                        'declined' =>
+                          'Quote declined · Standard booking at ₹${appointment.servicePrice}',
+                        _ => 'Priority details unavailable',
+                      }, style: const TextStyle(color: SalonTheme.taupe)),
+                      if (appointment.status == 'pending' &&
+                          appointment.priorityStatus == 'requested') ...[
+                        const SizedBox(height: 10),
+                        OutlinedButton.icon(
+                          onPressed: () => _quotePriority(appointment),
+                          icon: const Icon(Icons.request_quote_outlined),
+                          label: const Text('Quote extra fee'),
+                        ),
+                      ],
+                    ],
                     const SizedBox(height: 12),
-                    Row(
+                    Wrap(
+                      spacing: 16,
+                      runSpacing: 8,
                       children: [
-                        const Icon(
-                          Icons.calendar_today,
-                          size: 16,
-                          color: Colors.grey,
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(
+                              Icons.calendar_today,
+                              size: 16,
+                              color: Colors.grey,
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              DateFormat(
+                                'EEE, MMM d, yyyy',
+                              ).format(DateTime.parse(appointment.date)),
+                            ),
+                          ],
                         ),
-                        const SizedBox(width: 8),
-                        Text(
-                          DateFormat(
-                            'EEE, MMM d, yyyy',
-                          ).format(DateTime.parse(appointment.date)),
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(
+                              Icons.access_time,
+                              size: 16,
+                              color: Colors.grey,
+                            ),
+                            const SizedBox(width: 8),
+                            Text(appointment.timeSlot),
+                          ],
                         ),
-                        const SizedBox(width: 16),
-                        const Icon(
-                          Icons.access_time,
-                          size: 16,
-                          color: Colors.grey,
-                        ),
-                        const SizedBox(width: 8),
-                        Text(appointment.timeSlot),
                       ],
                     ),
                     if (appointment.status == 'pending') ...[
@@ -166,32 +287,44 @@ class _AdminAppointmentsScreenState extends State<AdminAppointmentsScreen> {
                         children: [
                           Expanded(
                             child: ElevatedButton(
-                              onPressed: () async {
-                                try {
-                                  await _appointmentService
-                                      .updateAppointmentStatus(
-                                        appointment.id,
-                                        'confirmed',
-                                      );
-                                  if (context.mounted) {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(
-                                        content: Text('Appointment confirmed.'),
-                                      ),
-                                    );
-                                  }
-                                } catch (_) {
-                                  if (context.mounted) {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(
-                                        content: Text(
-                                          'Could not confirm appointment.',
-                                        ),
-                                      ),
-                                    );
-                                  }
-                                }
-                              },
+                              onPressed:
+                                  appointment.priorityRequested &&
+                                      appointment.priorityStatus !=
+                                          'accepted' &&
+                                      appointment.priorityStatus != 'declined'
+                                  ? null
+                                  : () async {
+                                      try {
+                                        await _appointmentService
+                                            .updateAppointmentStatus(
+                                              appointment.id,
+                                              'confirmed',
+                                            );
+                                        if (context.mounted) {
+                                          ScaffoldMessenger.of(
+                                            context,
+                                          ).showSnackBar(
+                                            const SnackBar(
+                                              content: Text(
+                                                'Appointment confirmed.',
+                                              ),
+                                            ),
+                                          );
+                                        }
+                                      } catch (_) {
+                                        if (context.mounted) {
+                                          ScaffoldMessenger.of(
+                                            context,
+                                          ).showSnackBar(
+                                            const SnackBar(
+                                              content: Text(
+                                                'Could not confirm appointment.',
+                                              ),
+                                            ),
+                                          );
+                                        }
+                                      }
+                                    },
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: SalonTheme.success,
                                 foregroundColor: Colors.white,

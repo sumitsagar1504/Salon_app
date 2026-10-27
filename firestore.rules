@@ -67,15 +67,54 @@ service cloud.firestore {
         request.resource.data.timeSlot in ['09:00 AM', '10:00 AM', '11:00 AM', '12:00 PM', '02:00 PM', '03:00 PM', '04:00 PM', '05:00 PM', '06:00 PM'] &&
         request.resource.data.keys().hasOnly([
           'customerId', 'customerName', 'customerEmail', 'serviceId',
-          'serviceName', 'servicePrice', 'date', 'timeSlot', 'status', 'createdAt']) &&
+          'serviceName', 'servicePrice', 'date', 'timeSlot', 'status', 'createdAt',
+          'priorityRequested', 'priorityNote', 'priorityFee', 'priorityStatus']) &&
+        (!request.resource.data.keys().hasAny(['priorityRequested']) ||
+          (request.resource.data.keys().hasAll([
+            'priorityRequested', 'priorityNote', 'priorityFee', 'priorityStatus']) &&
+           request.resource.data.priorityRequested is bool &&
+           request.resource.data.priorityNote is string &&
+           request.resource.data.priorityNote.size() <= 500 &&
+           request.resource.data.priorityFee == 0 &&
+           ((request.resource.data.priorityRequested == true &&
+             request.resource.data.priorityNote.size() >= 10 &&
+             request.resource.data.priorityStatus == 'requested') ||
+            (request.resource.data.priorityRequested == false &&
+             request.resource.data.priorityNote == '' &&
+             request.resource.data.priorityStatus == 'none')))) &&
         get(/databases/$(database)/documents/services/$(request.resource.data.serviceId)).data.name == request.resource.data.serviceName &&
         get(/databases/$(database)/documents/services/$(request.resource.data.serviceId)).data.price == request.resource.data.servicePrice &&
         existsAfter(slotPath(slotId(request.resource.data))) &&
         getAfter(slotPath(slotId(request.resource.data))).data.appointmentId == id;
-      allow update: if request.resource.data.diff(resource.data).affectedKeys()
-          .hasOnly(['status']) && resource.data.status == 'pending' &&
-        ((admin() && request.resource.data.status in ['confirmed', 'cancelled']) ||
-         (own(resource.data.customerId) && request.resource.data.status == 'cancelled'));
+      allow update: if resource.data.status == 'pending' && (
+        (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status']) &&
+          ((admin() &&
+            ((request.resource.data.status == 'cancelled' &&
+              !existsAfter(slotPath(slotId(resource.data)))) ||
+             (request.resource.data.status == 'confirmed' &&
+              (resource.data.get('priorityRequested', false) == false ||
+               resource.data.get('priorityStatus', 'none') in ['accepted', 'declined'])))) ||
+           (own(resource.data.customerId) &&
+             request.resource.data.status == 'cancelled' &&
+             !existsAfter(slotPath(slotId(resource.data)))))) ||
+        (admin() && resource.data.get('priorityRequested', false) == true &&
+          resource.data.priorityStatus == 'requested' &&
+          request.resource.data.diff(resource.data).affectedKeys()
+            .hasOnly(['priorityFee', 'priorityStatus']) &&
+          request.resource.data.priorityStatus == 'quoted' &&
+          request.resource.data.priorityFee is number &&
+          request.resource.data.priorityFee > 0 &&
+          request.resource.data.priorityFee <= 100000) ||
+        (own(resource.data.customerId) &&
+          resource.data.get('priorityRequested', false) == true &&
+          resource.data.priorityStatus == 'quoted' &&
+          request.resource.data.diff(resource.data).affectedKeys()
+            .hasOnly(['priorityFee', 'priorityStatus']) &&
+          ((request.resource.data.priorityStatus == 'accepted' &&
+            request.resource.data.priorityFee == resource.data.priorityFee) ||
+           (request.resource.data.priorityStatus == 'declined' &&
+            request.resource.data.priorityFee == 0)))
+      );
       allow delete: if false;
     }
     match /bookingSlots/{id} {

@@ -16,6 +16,27 @@ New bookings reserve a `bookingSlots` document in the same Firestore transaction
 
 Current slot selection uses the application's existing fixed times. It does not model staff capacity, opening hours, or overlapping services longer than one slot. Those require business scheduling data before they can be enforced correctly.
 
+## Booking alerts and priority requests
+
+Customers can request priority handling while booking and describe their need. The booking keeps the normal service price until an administrator quotes an extra fee. The customer can accept the displayed total or decline the fee and keep the standard booking pending. An administrator can confirm the appointment only after the customer has answered the quote. The app does not collect payment; the salon handles payment separately. New fields on appointment documents are optional when reading existing bookings.
+
+The notification bell shows live appointment updates inside the signed-in app. Administrators see bookings needing review; customers see priority quotes and appointment outcomes. It uses existing Firestore access rules and works without email infrastructure. It is an in-app notification, not a background push notification.
+
+Email delivery is implemented as Firebase Cloud Functions in `functions/`. A new booking sends a separate email to every current administrator account, including the primary recovery owner. Confirmation sends the customer an email; a priority quote also emails the customer to request a decision. Addresses are read from Firebase Authentication at send time so an administrator's current email is used. Delivery records in `mailDelivery` and provider idempotency keys reduce duplicate emails if a trigger is retried. Client access to delivery records is denied by the Firestore rules.
+
+Email is **not active** until the following Firebase setup is complete:
+
+1. Upgrade Firebase project `salonapp-419d7` to the Blaze plan. Firebase requires Blaze to deploy Cloud Functions. Set a billing budget alert appropriate for the salon.
+2. Create a Resend account, verify a sender domain, and choose a sender address on that domain. A sender domain is required for reliable production mail.
+3. In `functions/`, run `npm ci`. From the repository root run `firebase functions:secrets:set RESEND_API_KEY --project salonapp-419d7` and enter the Resend API key at the prompt. Never put this key in Vercel or client code.
+4. Copy `functions/.env.example` to the ignored `functions/.env.salonapp-419d7` and replace the placeholder `MAIL_FROM` with the verified sender address.
+5. Deploy the rules first: `firebase deploy --only firestore:rules --project salonapp-419d7`. Then deploy the triggers: `firebase deploy --only functions --project salonapp-419d7`.
+6. Book a test appointment using a customer account, verify the admin inboxes receive the alert, quote and accept any priority fee, confirm it, and verify the customer receives email. Inspect Firebase Functions logs for failures.
+
+The Resend key and billing are external requirements. Without them, bookings, priority quotes, and in-app updates still work after the revised rules and web build are published; email will not be sent.
+
+For local tests, run `flutter test`, `npm test --prefix functions`, and `firebase emulators:exec --only firestore --project salon-priority-rules-test "npm run test:rules --prefix functions"`. The last command downloads the Firestore emulator on first use and never writes to the production database.
+
 ## Create or transfer administrator access
 
 For ordinary setup, sign in as an existing administrator, open **Manage Admins**, and select **Add admin**. Enter the person's name and email; the application creates an independent Firebase account and sends the recipient a link to choose a password. The primary owner UID remains the recovery account. The `scripts/migration/transfer-owner.mjs` utility is retained only as an emergency fallback for changing that primary recovery account's email. It requires a temporary service-account key and should not be used for routine administrator creation.

@@ -16,6 +16,63 @@ class MyAppointmentsScreen extends StatefulWidget {
 class _MyAppointmentsScreenState extends State<MyAppointmentsScreen> {
   final AppointmentService _appointmentService = AppointmentService();
 
+  Future<void> _respondToQuote(
+    AppointmentModel appointment, {
+    required bool accept,
+  }) async {
+    if (accept) {
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          title: const Text('Accept priority quote?'),
+          content: Text(
+            'Service ₹${appointment.servicePrice} + priority ₹${appointment.priorityFee} = ₹${appointment.servicePrice + appointment.priorityFee}. Payment is handled by the salon.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, false),
+              child: const Text('Not now'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(dialogContext, true),
+              child: const Text('Accept quote'),
+            ),
+          ],
+        ),
+      );
+      if (confirmed != true) return;
+    }
+    try {
+      await _appointmentService.respondToPriorityQuote(
+        appointment.id,
+        accept: accept,
+      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              accept
+                  ? 'Quote accepted. The salon can now confirm your booking.'
+                  : 'Extra fee declined. Your standard booking stays pending.',
+            ),
+          ),
+        );
+      }
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              error is StateError
+                  ? error.message
+                  : 'Could not update the quote. Try again.',
+            ),
+          ),
+        );
+      }
+    }
+  }
+
   Future<void> _cancel(AppointmentModel appointment) async {
     final confirmed = await showDialog<bool>(
       context: context,
@@ -156,13 +213,63 @@ class _MyAppointmentsScreenState extends State<MyAppointmentsScreen> {
                                 ),
                                 const Divider(height: 24),
                                 Text(
-                                  'Price: ₹${appointment.servicePrice}',
+                                  'Base price: ₹${appointment.servicePrice}',
                                   style: const TextStyle(
                                     fontSize: 16,
                                     fontWeight: FontWeight.bold,
                                     color: SalonTheme.blush,
                                   ),
                                 ),
+                                if (appointment.priorityRequested) ...[
+                                  const SizedBox(height: 10),
+                                  const SectionLabel('Priority request'),
+                                  const SizedBox(height: 5),
+                                  Text(appointment.priorityNote),
+                                  const SizedBox(height: 7),
+                                  Text(
+                                    switch (appointment.priorityStatus) {
+                                      'requested' =>
+                                        'Waiting for the salon to quote any extra fee',
+                                      'quoted' =>
+                                        'Extra fee ₹${appointment.priorityFee} · Total ₹${appointment.servicePrice + appointment.priorityFee}',
+                                      'accepted' =>
+                                        'Accepted total: ₹${appointment.totalPrice}',
+                                      'declined' =>
+                                        'Extra fee declined · Standard price ₹${appointment.servicePrice}',
+                                      _ => 'Priority details unavailable',
+                                    },
+                                    style: const TextStyle(
+                                      color: SalonTheme.taupe,
+                                    ),
+                                  ),
+                                  if (appointment.status == 'pending' &&
+                                      appointment.priorityStatus ==
+                                          'quoted') ...[
+                                    const SizedBox(height: 12),
+                                    Wrap(
+                                      spacing: 8,
+                                      runSpacing: 8,
+                                      children: [
+                                        FilledButton(
+                                          onPressed: () => _respondToQuote(
+                                            appointment,
+                                            accept: true,
+                                          ),
+                                          child: const Text('Accept quote'),
+                                        ),
+                                        OutlinedButton(
+                                          onPressed: () => _respondToQuote(
+                                            appointment,
+                                            accept: false,
+                                          ),
+                                          child: const Text(
+                                            'Decline extra fee',
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                ],
                                 if (appointment.status == 'pending' &&
                                     appointment.date.compareTo(
                                           DateFormat(
