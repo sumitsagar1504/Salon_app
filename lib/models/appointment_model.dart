@@ -38,7 +38,9 @@ class AppointmentModel {
       'date': date,
       'timeSlot': timeSlot,
       'status': status,
-      'createdAt': createdAt != null ? Timestamp.fromDate(createdAt!) : FieldValue.serverTimestamp(),
+      'createdAt': createdAt != null
+          ? Timestamp.fromDate(createdAt!)
+          : FieldValue.serverTimestamp(),
     };
   }
 

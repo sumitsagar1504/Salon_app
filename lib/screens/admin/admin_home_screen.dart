@@ -6,6 +6,8 @@ import '../auth/login_screen.dart';
 import 'manage_services_screen.dart';
 import 'admin_appointments_screen.dart';
 import 'manage_admins_screen.dart';
+import '../../theme/salon_theme.dart';
+import '../../widgets/salon_ui.dart';
 
 class AdminHomeScreen extends StatelessWidget {
   const AdminHomeScreen({super.key});
@@ -16,7 +18,7 @@ class AdminHomeScreen extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Admin Dashboard'),
+        title: const SalonBrand(compact: true),
         actions: [
           IconButton(
             icon: const Icon(Icons.logout),
@@ -32,92 +34,139 @@ class AdminHomeScreen extends StatelessWidget {
           ),
         ],
       ),
-      body: Center(child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 1000),
+      body: SalonPage(
         child: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Your salon, at a glance',
-              style: Theme.of(context).textTheme.headlineMedium),
-            const SizedBox(height: 20),
-            
-            // STATS ROW
-            StreamBuilder<List<AppointmentModel>>(
-              stream: appointmentService.getAllAppointments(),
-              builder: (context, snapshot) {
-                int total = 0;
-                int pending = 0;
-                int confirmed = 0;
-
-                if (snapshot.hasData) {
-                  total = snapshot.data!.length;
-                  pending = snapshot.data!.where((a) => a.status == 'pending').length;
-                  confirmed = snapshot.data!.where((a) => a.status == 'confirmed').length;
-                }
-
-                if (snapshot.hasError) {
-                  return const Text('Appointment summary could not be loaded.');
-                }
-                if (!snapshot.hasData) {
-                  return const CircularProgressIndicator();
-                }
-                return Wrap(
-                  spacing: 12,
-                  runSpacing: 12,
-                  children: [
-                    _buildStatCard('Total', total.toString(), Colors.blue),
-                    _buildStatCard('Pending', pending.toString(), Colors.orange),
-                    _buildStatCard('Confirmed', confirmed.toString(), Colors.green),
-                  ],
-                );
-              },
-            ),
-            
-            const SizedBox(height: 30),
-            
-            // MENU CARDS
-            _buildMenuCard(
-              context,
-              Icons.content_cut,
-              'Manage Services',
-              'Add, edit or remove salon services',
-              () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ManageServicesScreen())),
-            ),
-            _buildMenuCard(
-              context,
-              Icons.calendar_today,
-              'All Appointments',
-              'Confirm or cancel customer bookings',
-              () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AdminAppointmentsScreen())),
-            ),
-            _buildMenuCard(
-              context,
-              Icons.admin_panel_settings_outlined,
-              'Manage Admins',
-              'Create separate accounts for salon managers',
-              () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ManageAdminsScreen())),
-            ),
-          ],
-        ),
-      ))),
-    );
-  }
-
-  Widget _buildStatCard(String label, String value, Color color) {
-    return SizedBox(
-      width: 170,
-      child: Card(
-        elevation: 4,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 20.0),
           child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(value, style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: color)),
-              const SizedBox(height: 4),
-              Text(label, style: const TextStyle(fontSize: 12, color: Colors.grey)),
+              const SectionLabel('Owner workspace'),
+              const SizedBox(height: 8),
+              Text(
+                'Your salon, at a glance',
+                style: Theme.of(context).textTheme.headlineLarge,
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'Manage today’s bookings, services, and trusted team access.',
+              ),
+              const SizedBox(height: 28),
+
+              // STATS ROW
+              StreamBuilder<List<AppointmentModel>>(
+                stream: appointmentService.getAllAppointments(),
+                builder: (context, snapshot) {
+                  int total = 0;
+                  int pending = 0;
+                  int confirmed = 0;
+
+                  if (snapshot.hasData) {
+                    total = snapshot.data!.length;
+                    pending = snapshot.data!
+                        .where((a) => a.status == 'pending')
+                        .length;
+                    confirmed = snapshot.data!
+                        .where((a) => a.status == 'confirmed')
+                        .length;
+                  }
+
+                  if (snapshot.hasError) {
+                    return const Text(
+                      'Appointment summary could not be loaded.',
+                    );
+                  }
+                  if (!snapshot.hasData) {
+                    return const CircularProgressIndicator();
+                  }
+                  return Wrap(
+                    spacing: 12,
+                    runSpacing: 12,
+                    children: [
+                      _buildStatCard(
+                        'All bookings',
+                        total.toString(),
+                        Icons.event_note_outlined,
+                        SalonTheme.taupe,
+                      ),
+                      _buildStatCard(
+                        'Needs review',
+                        pending.toString(),
+                        Icons.schedule_rounded,
+                        SalonTheme.warning,
+                      ),
+                      _buildStatCard(
+                        'Confirmed',
+                        confirmed.toString(),
+                        Icons.check_circle_outline_rounded,
+                        SalonTheme.success,
+                      ),
+                    ],
+                  );
+                },
+              ),
+
+              const SizedBox(height: 30),
+
+              // MENU CARDS
+              const SectionLabel('Management'),
+              const SizedBox(height: 12),
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  final width = constraints.maxWidth < 760
+                      ? constraints.maxWidth
+                      : (constraints.maxWidth - 24) / 3;
+                  return Wrap(
+                    spacing: 12,
+                    runSpacing: 12,
+                    children: [
+                      SizedBox(
+                        width: width,
+                        child: _buildMenuCard(
+                          context,
+                          Icons.content_cut_rounded,
+                          'Services',
+                          'Add, edit and curate your service menu',
+                          () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const ManageServicesScreen(),
+                            ),
+                          ),
+                        ),
+                      ),
+                      SizedBox(
+                        width: width,
+                        child: _buildMenuCard(
+                          context,
+                          Icons.calendar_month_outlined,
+                          'Appointments',
+                          'Review and update customer bookings',
+                          () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const AdminAppointmentsScreen(),
+                            ),
+                          ),
+                        ),
+                      ),
+                      SizedBox(
+                        width: width,
+                        child: _buildMenuCard(
+                          context,
+                          Icons.admin_panel_settings_outlined,
+                          'Team access',
+                          'Approve owners and add trusted admins',
+                          () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const ManageAdminsScreen(),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  );
+                },
+              ),
             ],
           ),
         ),
@@ -125,18 +174,95 @@ class AdminHomeScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildMenuCard(BuildContext context, IconData icon, String title, String subtitle, VoidCallback onTap) {
+  Widget _buildStatCard(
+    String label,
+    String value,
+    IconData icon,
+    Color color,
+  ) {
+    return SizedBox(
+      width: 190,
+      child: Card(
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Row(
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: .1),
+                  borderRadius: BorderRadius.circular(13),
+                ),
+                child: Icon(icon, color: color),
+              ),
+              const SizedBox(width: 14),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    value,
+                    style: const TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  Text(
+                    label,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: SalonTheme.taupe,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMenuCard(
+    BuildContext context,
+    IconData icon,
+    String title,
+    String subtitle,
+    VoidCallback onTap,
+  ) {
     return Card(
-      elevation: 4,
-      margin: const EdgeInsets.only(bottom: 16),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-      child: ListTile(
-        contentPadding: const EdgeInsets.all(16),
-        leading: Icon(icon, size: 40, color: Theme.of(context).primaryColor),
-        title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
-        subtitle: Text(subtitle),
-        trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(SalonTheme.radius),
         onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.all(22),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  color: SalonTheme.blushSoft,
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Icon(icon, color: SalonTheme.blush),
+              ),
+              const SizedBox(height: 18),
+              Text(title, style: Theme.of(context).textTheme.titleMedium),
+              const SizedBox(height: 6),
+              Text(subtitle, style: Theme.of(context).textTheme.bodySmall),
+              const SizedBox(height: 18),
+              const Row(
+                children: [
+                  Text('Open', style: TextStyle(fontWeight: FontWeight.w700)),
+                  SizedBox(width: 6),
+                  Icon(Icons.arrow_forward_rounded, size: 18),
+                ],
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

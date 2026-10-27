@@ -24,7 +24,9 @@ class _ManageAdminsScreenState extends State<ManageAdminsScreen> {
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('The owner request could not be approved.')),
+        const SnackBar(
+          content: Text('The owner request could not be approved.'),
+        ),
       );
     }
   }
@@ -39,7 +41,10 @@ class _ManageAdminsScreenState extends State<ManageAdminsScreen> {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Pending owner requests', style: Theme.of(context).textTheme.titleLarge),
+            Text(
+              'Pending owner requests',
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
             const SizedBox(height: 8),
             ...snapshot.data!.docs.map((document) {
               final request = document.data();
@@ -100,10 +105,14 @@ class _ManageAdminsScreenState extends State<ManageAdminsScreen> {
                     enabled: !submitting,
                     keyboardType: TextInputType.emailAddress,
                     autofillHints: const [AutofillHints.email],
-                    decoration: const InputDecoration(labelText: 'Email address'),
+                    decoration: const InputDecoration(
+                      labelText: 'Email address',
+                    ),
                     validator: (value) {
                       final email = value?.trim() ?? '';
-                      if (!RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$').hasMatch(email)) {
+                      if (!RegExp(
+                        r'^[^@\s]+@[^@\s]+\.[^@\s]+$',
+                      ).hasMatch(email)) {
                         return 'Enter a valid email address';
                       }
                       return null;
@@ -138,15 +147,17 @@ class _ManageAdminsScreenState extends State<ManageAdminsScreen> {
                         final message = error.code == 'email-already-in-use'
                             ? 'That email already has an account.'
                             : 'The admin account could not be created.';
-                        ScaffoldMessenger.of(dialogContext).showSnackBar(
-                          SnackBar(content: Text(message)),
-                        );
+                        ScaffoldMessenger.of(
+                          dialogContext,
+                        ).showSnackBar(SnackBar(content: Text(message)));
                         setDialogState(() => submitting = false);
                       } catch (_) {
                         if (!dialogContext.mounted) return;
                         ScaffoldMessenger.of(dialogContext).showSnackBar(
                           const SnackBar(
-                            content: Text('The admin account could not be created.'),
+                            content: Text(
+                              'The admin account could not be created.',
+                            ),
                           ),
                         );
                         setDialogState(() => submitting = false);
@@ -217,10 +228,13 @@ class _ManageAdminsScreenState extends State<ManageAdminsScreen> {
                   _buildPendingRequests(),
                   Card(
                     child: ListTile(
-                      leading: const CircleAvatar(child: Icon(Icons.shield_outlined)),
+                      leading: const CircleAvatar(
+                        child: Icon(Icons.shield_outlined),
+                      ),
                       title: const Text('Primary salon owner'),
                       subtitle: Text(
-                        FirebaseAuth.instance.currentUser?.uid == AuthService.ownerUid
+                        FirebaseAuth.instance.currentUser?.uid ==
+                                AuthService.ownerUid
                             ? '${FirebaseAuth.instance.currentUser?.email ?? ''} · You'
                             : 'Primary owner account',
                       ),

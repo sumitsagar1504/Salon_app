@@ -2,12 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../models/appointment_model.dart';
 import '../../services/appointment_service.dart';
+import '../../theme/salon_theme.dart';
+import '../../widgets/salon_ui.dart';
 
 class AdminAppointmentsScreen extends StatefulWidget {
   const AdminAppointmentsScreen({super.key});
 
   @override
-  State<AdminAppointmentsScreen> createState() => _AdminAppointmentsScreenState();
+  State<AdminAppointmentsScreen> createState() =>
+      _AdminAppointmentsScreenState();
 }
 
 class _AdminAppointmentsScreenState extends State<AdminAppointmentsScreen> {
@@ -57,11 +60,17 @@ class _AdminAppointmentsScreenState extends State<AdminAppointmentsScreen> {
 
         var appointments = snapshot.data!;
         if (filter == 'pending') {
-          appointments = appointments.where((a) => a.status == 'pending').toList();
+          appointments = appointments
+              .where((a) => a.status == 'pending')
+              .toList();
         } else if (filter == 'confirmed') {
-          appointments = appointments.where((a) => a.status == 'confirmed').toList();
+          appointments = appointments
+              .where((a) => a.status == 'confirmed')
+              .toList();
         } else if (filter == 'cancelled') {
-          appointments = appointments.where((a) => a.status == 'cancelled').toList();
+          appointments = appointments
+              .where((a) => a.status == 'cancelled')
+              .toList();
         }
 
         if (appointments.isEmpty) {
@@ -76,7 +85,9 @@ class _AdminAppointmentsScreenState extends State<AdminAppointmentsScreen> {
             return Card(
               elevation: 4,
               margin: const EdgeInsets.only(bottom: 16),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(15),
+              ),
               child: Padding(
                 padding: const EdgeInsets.all(16.0),
                 child: Column(
@@ -89,30 +100,62 @@ class _AdminAppointmentsScreenState extends State<AdminAppointmentsScreen> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(appointment.customerName,
-                                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
-                              Text(appointment.customerEmail,
-                                  style: const TextStyle(color: Colors.grey, fontSize: 12)),
+                              Text(
+                                appointment.customerName,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 18,
+                                ),
+                              ),
+                              Text(
+                                appointment.customerEmail,
+                                style: const TextStyle(
+                                  color: Colors.grey,
+                                  fontSize: 12,
+                                ),
+                              ),
                             ],
                           ),
                         ),
-                        _buildStatusBadge(appointment.status),
+                        StatusPill(appointment.status),
                       ],
                     ),
                     const Divider(height: 24),
-                    Text(appointment.serviceName,
-                        style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16)),
+                    Text(
+                      appointment.serviceName,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 16,
+                      ),
+                    ),
                     const SizedBox(height: 4),
-                    Text('Price: ₹${appointment.servicePrice}',
-                        style: TextStyle(color: Theme.of(context).primaryColor)),
+                    Text(
+                      'Price: ₹${appointment.servicePrice}',
+                      style: const TextStyle(
+                        color: SalonTheme.blush,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
                     const SizedBox(height: 12),
                     Row(
                       children: [
-                        const Icon(Icons.calendar_today, size: 16, color: Colors.grey),
+                        const Icon(
+                          Icons.calendar_today,
+                          size: 16,
+                          color: Colors.grey,
+                        ),
                         const SizedBox(width: 8),
-                        Text(DateFormat('EEE, MMM d, yyyy').format(DateTime.parse(appointment.date))),
+                        Text(
+                          DateFormat(
+                            'EEE, MMM d, yyyy',
+                          ).format(DateTime.parse(appointment.date)),
+                        ),
                         const SizedBox(width: 16),
-                        const Icon(Icons.access_time, size: 16, color: Colors.grey),
+                        const Icon(
+                          Icons.access_time,
+                          size: 16,
+                          color: Colors.grey,
+                        ),
                         const SizedBox(width: 8),
                         Text(appointment.timeSlot),
                       ],
@@ -125,19 +168,34 @@ class _AdminAppointmentsScreenState extends State<AdminAppointmentsScreen> {
                             child: ElevatedButton(
                               onPressed: () async {
                                 try {
-                                  await _appointmentService.updateAppointmentStatus(appointment.id, 'confirmed');
+                                  await _appointmentService
+                                      .updateAppointmentStatus(
+                                        appointment.id,
+                                        'confirmed',
+                                      );
                                   if (context.mounted) {
                                     ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(content: Text('Appointment confirmed.')));
+                                      const SnackBar(
+                                        content: Text('Appointment confirmed.'),
+                                      ),
+                                    );
                                   }
                                 } catch (_) {
                                   if (context.mounted) {
                                     ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(content: Text('Could not confirm appointment.')));
+                                      const SnackBar(
+                                        content: Text(
+                                          'Could not confirm appointment.',
+                                        ),
+                                      ),
+                                    );
                                   }
                                 }
                               },
-                              style: ElevatedButton.styleFrom(backgroundColor: Colors.green, foregroundColor: Colors.white),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: SalonTheme.success,
+                                foregroundColor: Colors.white,
+                              ),
                               child: const Text('Confirm'),
                             ),
                           ),
@@ -149,28 +207,53 @@ class _AdminAppointmentsScreenState extends State<AdminAppointmentsScreen> {
                                   context: context,
                                   builder: (dialogContext) => AlertDialog(
                                     title: const Text('Cancel appointment?'),
-                                    content: Text('Cancel ${appointment.customerName}’s ${appointment.serviceName} booking?'),
+                                    content: Text(
+                                      'Cancel ${appointment.customerName}’s ${appointment.serviceName} booking?',
+                                    ),
                                     actions: [
-                                      TextButton(onPressed: () => Navigator.pop(dialogContext, false), child: const Text('Keep booking')),
-                                      TextButton(onPressed: () => Navigator.pop(dialogContext, true), child: const Text('Cancel booking')),
+                                      TextButton(
+                                        onPressed: () =>
+                                            Navigator.pop(dialogContext, false),
+                                        child: const Text('Keep booking'),
+                                      ),
+                                      TextButton(
+                                        onPressed: () =>
+                                            Navigator.pop(dialogContext, true),
+                                        child: const Text('Cancel booking'),
+                                      ),
                                     ],
                                   ),
                                 );
                                 if (confirmed != true) return;
                                 try {
-                                  await _appointmentService.updateAppointmentStatus(appointment.id, 'cancelled');
+                                  await _appointmentService
+                                      .updateAppointmentStatus(
+                                        appointment.id,
+                                        'cancelled',
+                                      );
                                   if (context.mounted) {
                                     ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(content: Text('Appointment cancelled.')));
+                                      const SnackBar(
+                                        content: Text('Appointment cancelled.'),
+                                      ),
+                                    );
                                   }
                                 } catch (_) {
                                   if (context.mounted) {
                                     ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(content: Text('Could not cancel appointment.')));
+                                      const SnackBar(
+                                        content: Text(
+                                          'Could not cancel appointment.',
+                                        ),
+                                      ),
+                                    );
                                   }
                                 }
                               },
-                              style: OutlinedButton.styleFrom(foregroundColor: Colors.red, side: const BorderSide(color: Colors.red)),
+                              style: OutlinedButton.styleFrom(
+                                foregroundColor: Colors.red,
+                                side: const BorderSide(color: Colors.red),
+                              ),
                               child: const Text('Cancel'),
                             ),
                           ),
@@ -184,33 +267,6 @@ class _AdminAppointmentsScreenState extends State<AdminAppointmentsScreen> {
           },
         );
       },
-    );
-  }
-
-  Widget _buildStatusBadge(String status) {
-    Color color;
-    switch (status) {
-      case 'pending':
-        color = Colors.orange;
-        break;
-      case 'confirmed':
-        color = Colors.green;
-        break;
-      case 'cancelled':
-        color = Colors.red;
-        break;
-      default:
-        color = Colors.grey;
-    }
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color),
-      ),
-      child: Text(status.toUpperCase(),
-          style: TextStyle(color: color, fontSize: 10, fontWeight: FontWeight.bold)),
     );
   }
 }

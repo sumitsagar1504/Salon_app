@@ -2,8 +2,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/service_model.dart';
 
 class SalonService {
-  final CollectionReference _servicesCollection =
-      FirebaseFirestore.instance.collection('services');
+  final CollectionReference _servicesCollection = FirebaseFirestore.instance
+      .collection('services');
 
   Stream<List<ServiceModel>> getServicesStream() {
     return _servicesCollection.orderBy('name').snapshots().map((snapshot) {

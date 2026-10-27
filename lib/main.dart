@@ -17,13 +17,22 @@ void main() async {
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
-  
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'The Salon',
       debugShowCheckedModeBanner: false,
       theme: SalonTheme.light,
+      themeAnimationDuration: const Duration(milliseconds: 180),
+      builder: (context, child) => MediaQuery(
+        data: MediaQuery.of(context).copyWith(
+          textScaler: MediaQuery.textScalerOf(
+            context,
+          ).clamp(minScaleFactor: 1, maxScaleFactor: 1.4),
+        ),
+        child: child!,
+      ),
       home: const AuthWrapper(),
     );
   }
@@ -38,17 +47,21 @@ class AuthWrapper extends StatelessWidget {
       stream: FirebaseAuth.instance.authStateChanges(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Scaffold(body: Center(child: CircularProgressIndicator()));
+          return const Scaffold(
+            body: Center(child: CircularProgressIndicator()),
+          );
         }
-        
+
         if (snapshot.hasData && snapshot.data != null) {
           return FutureBuilder<UserModel?>(
             future: AuthService().getUserData(snapshot.data!.uid),
             builder: (context, userSnapshot) {
               if (userSnapshot.connectionState == ConnectionState.waiting) {
-                return const Scaffold(body: Center(child: CircularProgressIndicator()));
+                return const Scaffold(
+                  body: Center(child: CircularProgressIndicator()),
+                );
               }
-              
+
               if (userSnapshot.hasData && userSnapshot.data != null) {
                 if (userSnapshot.data!.role == 'admin') {
                   return const AdminHomeScreen();

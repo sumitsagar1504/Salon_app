@@ -15,14 +15,22 @@ void main() {
     expect(message, isNot(contains('Exception')));
   });
 
-  testWidgets('Primary booking action meets a readable touch target', (tester) async {
-    await tester.pumpWidget(MaterialApp(
-      theme: SalonTheme.light,
-      home: Scaffold(
-        body: Center(child: ElevatedButton(
-          onPressed: () {}, child: const Text('Book a service'))),
+  testWidgets('Primary booking action meets a readable touch target', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: SalonTheme.light,
+        home: Scaffold(
+          body: Center(
+            child: ElevatedButton(
+              onPressed: () {},
+              child: const Text('Book a service'),
+            ),
+          ),
+        ),
       ),
-    ));
+    );
 
     final button = tester.getSize(find.byType(ElevatedButton));
     expect(button.height, greaterThanOrEqualTo(48));
@@ -30,10 +38,9 @@ void main() {
   });
 
   testWidgets('Password reset asks for a valid email', (tester) async {
-    await tester.pumpWidget(MaterialApp(
-      theme: SalonTheme.light,
-      home: const LoginScreen(),
-    ));
+    await tester.pumpWidget(
+      MaterialApp(theme: SalonTheme.light, home: const LoginScreen()),
+    );
 
     await tester.tap(find.text('Forgot password?'));
     await tester.pumpAndSettle();
@@ -45,24 +52,27 @@ void main() {
   });
 
   testWidgets('Owner sign-in explains account access', (tester) async {
-    await tester.pumpWidget(MaterialApp(
-      theme: SalonTheme.light,
-      home: const LoginScreen(),
-    ));
+    await tester.pumpWidget(
+      MaterialApp(theme: SalonTheme.light, home: const LoginScreen()),
+    );
 
     expect(find.text('Customer'), findsOneWidget);
     await tester.tap(find.text('Salon owner'));
     await tester.pumpAndSettle();
-    expect(find.textContaining('Owner access is verified automatically'), findsOneWidget);
+    expect(
+      find.textContaining('Owner access is verified automatically'),
+      findsOneWidget,
+    );
     expect(find.textContaining("Don't have an account?"), findsNothing);
     expect(find.text('Need an owner account? Request access'), findsOneWidget);
   });
 
-  testWidgets('Signup lets an owner submit an approval request', (tester) async {
-    await tester.pumpWidget(MaterialApp(
-      theme: SalonTheme.light,
-      home: const SignupScreen(),
-    ));
+  testWidgets('Signup lets an owner submit an approval request', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(theme: SalonTheme.light, home: const SignupScreen()),
+    );
 
     expect(find.text('Customer'), findsOneWidget);
     expect(find.text('Salon owner'), findsOneWidget);

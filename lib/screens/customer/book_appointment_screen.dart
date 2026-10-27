@@ -5,6 +5,8 @@ import '../../models/service_model.dart';
 import '../../models/appointment_model.dart';
 import '../../services/appointment_service.dart';
 import '../../services/auth_service.dart';
+import '../../theme/salon_theme.dart';
+import '../../widgets/salon_ui.dart';
 
 class BookAppointmentScreen extends StatefulWidget {
   final ServiceModel service;
@@ -26,7 +28,9 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
 
   static DateTime _nextBookableDate() {
     var date = DateTime.now().add(const Duration(days: 1));
-    if (date.weekday == DateTime.sunday) date = date.add(const Duration(days: 1));
+    if (date.weekday == DateTime.sunday) {
+      date = date.add(const Duration(days: 1));
+    }
     return date;
   }
 
@@ -41,10 +45,13 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
       _isLoadingSlots = true;
       _selectedTimeSlot = null;
     });
-    
+
     final dateStr = DateFormat('yyyy-MM-dd').format(_selectedDate);
     try {
-      final booked = await AppointmentService().getBookedSlots(widget.service.id, dateStr);
+      final booked = await AppointmentService().getBookedSlots(
+        widget.service.id,
+        dateStr,
+      );
       if (!mounted) return;
       setState(() {
         _bookedSlots = booked;
@@ -91,7 +98,9 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
       if (user == null) throw StateError('Please sign in again.');
 
       final userData = await AuthService().getUserData(user.uid);
-      if (userData == null) throw StateError('Your account could not be loaded.');
+      if (userData == null) {
+        throw StateError('Your account could not be loaded.');
+      }
 
       final appointment = AppointmentModel(
         id: '',
@@ -117,7 +126,11 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e is StateError ? e.message : 'Booking failed. Please try again.')),
+          SnackBar(
+            content: Text(
+              e is StateError ? e.message : 'Booking failed. Please try again.',
+            ),
+          ),
         );
         _fetchBookedSlots();
       }
@@ -129,104 +142,143 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Book Appointment'),
-      ),
-      body: Center(child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 680),
-        child: SingleChildScrollView(
-        padding: const EdgeInsets.all(24.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Section 1: Service Summary
-            Card(
-              elevation: 2,
-              color: Colors.grey[100],
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      widget.service.name,
-                      style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+      appBar: AppBar(title: const Text('Reserve your visit')),
+      body: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 680),
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(24.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Section 1: Service Summary
+                const SectionLabel('Selected service'),
+                const SizedBox(height: 10),
+                Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(20),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 52,
+                          height: 52,
+                          decoration: BoxDecoration(
+                            color: SalonTheme.blushSoft,
+                            borderRadius: BorderRadius.circular(15),
+                          ),
+                          child: const Icon(
+                            Icons.spa_outlined,
+                            color: SalonTheme.blush,
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                widget.service.name,
+                                style: Theme.of(context).textTheme.titleMedium,
+                              ),
+                              const SizedBox(height: 5),
+                              Text(
+                                '${widget.service.durationMinutes} min · ₹${widget.service.price}',
+                                style: const TextStyle(color: SalonTheme.taupe),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
                     ),
-                    const SizedBox(height: 8),
-                    Text('Price: ₹${widget.service.price}'),
-                    Text('Duration: ${widget.service.durationMinutes} min'),
-                  ],
+                  ),
                 ),
-              ),
-            ),
-            const SizedBox(height: 24),
+                const SizedBox(height: 24),
 
-            // Section 2: Select Date
-            const Text(
-              'Select Date',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 8),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
-                onPressed: _selectDate,
-                icon: const Icon(Icons.calendar_today),
-                label: Text(DateFormat('EEE, MMM d, yyyy').format(_selectedDate)),
-              ),
-            ),
-            const SizedBox(height: 24),
-
-            // Section 3: Select Time Slot
-            const Text(
-              'Select Time Slot',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 8),
-            if (_slotError != null) ...[
-              Text(_slotError!, style: TextStyle(color: Theme.of(context).colorScheme.error)),
-              TextButton(onPressed: _fetchBookedSlots, child: const Text('Retry')),
-            ] else if (_isLoadingSlots)
-              const Center(child: CircularProgressIndicator())
-            else
-              Wrap(
-                spacing: 8.0,
-                runSpacing: 8.0,
-                children: _allSlots.map((slot) {
-                  final isBooked = _bookedSlots.contains(slot);
-                  return ChoiceChip(
-                    label: Text(slot),
-                    selected: _selectedTimeSlot == slot,
-                    onSelected: isBooked ? null : (selected) {
-                      setState(() {
-                        _selectedTimeSlot = selected ? slot : null;
-                      });
-                    },
-                    selectedColor: Theme.of(context).primaryColor,
-                    labelStyle: TextStyle(
-                      color: _selectedTimeSlot == slot ? Colors.white : Colors.black,
+                // Section 2: Select Date
+                const SectionLabel('1 · Choose a date'),
+                const SizedBox(height: 8),
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    onPressed: _selectDate,
+                    icon: const Icon(Icons.calendar_today),
+                    label: Text(
+                      DateFormat('EEE, MMM d, yyyy').format(_selectedDate),
                     ),
-                    disabledColor: Colors.grey[300],
-                  );
-                }).toList(),
-              ),
-            const SizedBox(height: 40),
-
-            // Section 4: Confirm Button
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: _selectedTimeSlot == null || _isSubmitting || _isLoadingSlots || _slotError != null
-                    ? null : _confirmBooking,
-                style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  ),
                 ),
-                child: Text(_isSubmitting ? 'Booking…' : 'Confirm booking', style: const TextStyle(fontSize: 18)),
-              ),
+                const SizedBox(height: 24),
+
+                // Section 3: Select Time Slot
+                const SectionLabel('2 · Choose a time'),
+                const SizedBox(height: 8),
+                if (_slotError != null) ...[
+                  Text(
+                    _slotError!,
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.error,
+                    ),
+                  ),
+                  TextButton(
+                    onPressed: _fetchBookedSlots,
+                    child: const Text('Retry'),
+                  ),
+                ] else if (_isLoadingSlots)
+                  const Center(child: CircularProgressIndicator())
+                else
+                  Wrap(
+                    spacing: 8.0,
+                    runSpacing: 8.0,
+                    children: _allSlots.map((slot) {
+                      final isBooked = _bookedSlots.contains(slot);
+                      return ChoiceChip(
+                        label: Text(slot),
+                        selected: _selectedTimeSlot == slot,
+                        onSelected: isBooked
+                            ? null
+                            : (selected) {
+                                setState(() {
+                                  _selectedTimeSlot = selected ? slot : null;
+                                });
+                              },
+                        selectedColor: SalonTheme.ink,
+                        labelStyle: TextStyle(
+                          color: _selectedTimeSlot == slot
+                              ? Colors.white
+                              : SalonTheme.ink,
+                        ),
+                        disabledColor: Colors.grey[300],
+                      );
+                    }).toList(),
+                  ),
+                const SizedBox(height: 40),
+
+                // Section 4: Confirm Button
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed:
+                        _selectedTimeSlot == null ||
+                            _isSubmitting ||
+                            _isLoadingSlots ||
+                            _slotError != null
+                        ? null
+                        : _confirmBooking,
+                    style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                    ),
+                    child: Text(
+                      _isSubmitting
+                          ? 'Reserving your time…'
+                          : 'Confirm booking',
+                    ),
+                  ),
+                ),
+              ],
             ),
-          ],
+          ),
         ),
-      ))),
+      ),
     );
   }
 }

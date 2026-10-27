@@ -12,12 +12,7 @@ class UserModel {
   });
 
   Map<String, dynamic> toMap() {
-    return {
-      'uid': uid,
-      'email': email,
-      'name': name,
-      'role': role,
-    };
+    return {'uid': uid, 'email': email, 'name': name, 'role': role};
   }
 
   factory UserModel.fromMap(Map<String, dynamic> map) {

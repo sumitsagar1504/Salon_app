@@ -44,8 +44,12 @@ class AuthService {
           .get();
       if (doc.exists && doc.data() != null) {
         final profile = UserModel.fromMap(doc.data() as Map<String, dynamic>);
-        final adminRecord = await _firestore.collection('admins').doc(uid).get();
-        final isAdmin = (_auth.currentUser?.uid == uid && uid == ownerUid) ||
+        final adminRecord = await _firestore
+            .collection('admins')
+            .doc(uid)
+            .get();
+        final isAdmin =
+            (_auth.currentUser?.uid == uid && uid == ownerUid) ||
             adminRecord.exists;
         return UserModel(
           uid: uid,
@@ -80,7 +84,10 @@ class AuthService {
         );
 
         final batch = _firestore.batch();
-        batch.set(_firestore.collection('users').doc(user.uid), newUser.toMap());
+        batch.set(
+          _firestore.collection('users').doc(user.uid),
+          newUser.toMap(),
+        );
         if (requestAdminAccess) {
           batch.set(_firestore.collection('adminRequests').doc(user.uid), {
             'uid': user.uid,
@@ -191,7 +198,9 @@ class AuthService {
         password: temporaryPassword,
       );
       newUser = credential.user;
-      if (newUser == null) throw StateError('Firebase did not create the user.');
+      if (newUser == null) {
+        throw StateError('Firebase did not create the user.');
+      }
 
       final profile = UserModel(
         uid: newUser.uid,
@@ -200,7 +209,10 @@ class AuthService {
         role: 'admin',
       );
       final batch = _firestore.batch();
-      batch.set(_firestore.collection('users').doc(newUser.uid), profile.toMap());
+      batch.set(
+        _firestore.collection('users').doc(newUser.uid),
+        profile.toMap(),
+      );
       batch.set(_firestore.collection('admins').doc(newUser.uid), {
         'uid': newUser.uid,
         'email': normalizedEmail,

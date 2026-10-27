@@ -15,47 +15,64 @@ class _ManageServicesScreenState extends State<ManageServicesScreen> {
   void _showServiceDialog([ServiceModel? service]) {
     final formKey = GlobalKey<FormState>();
     final nameController = TextEditingController(text: service?.name ?? '');
-    final descController = TextEditingController(text: service?.description ?? '');
-    final priceController = TextEditingController(text: service?.price.toString() ?? '');
-    final durationController = TextEditingController(text: service?.durationMinutes.toString() ?? '');
+    final descController = TextEditingController(
+      text: service?.description ?? '',
+    );
+    final priceController = TextEditingController(
+      text: service?.price.toString() ?? '',
+    );
+    final durationController = TextEditingController(
+      text: service?.durationMinutes.toString() ?? '',
+    );
 
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         title: Text(service == null ? 'Add Service' : 'Edit Service'),
         content: SingleChildScrollView(
-          child: Form(key: formKey, child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextFormField(
-                controller: nameController,
-                decoration: const InputDecoration(labelText: 'Name'),
-                validator: (value) => value == null || value.trim().isEmpty ? 'Enter a name' : null,
-              ),
-              TextField(
-                controller: descController,
-                decoration: const InputDecoration(labelText: 'Description'),
-              ),
-              TextFormField(
-                controller: priceController,
-                decoration: const InputDecoration(labelText: 'Price (₹)'),
-                keyboardType: TextInputType.number,
-                validator: (value) {
-                  final price = double.tryParse(value ?? '');
-                  return price == null || !price.isFinite || price < 0 ? 'Enter a valid price' : null;
-                },
-              ),
-              TextFormField(
-                controller: durationController,
-                decoration: const InputDecoration(labelText: 'Duration (minutes)'),
-                keyboardType: TextInputType.number,
-                validator: (value) {
-                  final duration = int.tryParse(value ?? '');
-                  return duration == null || duration <= 0 ? 'Enter a valid duration' : null;
-                },
-              ),
-            ],
-          )),
+          child: Form(
+            key: formKey,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextFormField(
+                  controller: nameController,
+                  decoration: const InputDecoration(labelText: 'Name'),
+                  validator: (value) => value == null || value.trim().isEmpty
+                      ? 'Enter a name'
+                      : null,
+                ),
+                TextField(
+                  controller: descController,
+                  decoration: const InputDecoration(labelText: 'Description'),
+                ),
+                TextFormField(
+                  controller: priceController,
+                  decoration: const InputDecoration(labelText: 'Price (₹)'),
+                  keyboardType: TextInputType.number,
+                  validator: (value) {
+                    final price = double.tryParse(value ?? '');
+                    return price == null || !price.isFinite || price < 0
+                        ? 'Enter a valid price'
+                        : null;
+                  },
+                ),
+                TextFormField(
+                  controller: durationController,
+                  decoration: const InputDecoration(
+                    labelText: 'Duration (minutes)',
+                  ),
+                  keyboardType: TextInputType.number,
+                  validator: (value) {
+                    final duration = int.tryParse(value ?? '');
+                    return duration == null || duration <= 0
+                        ? 'Enter a valid duration'
+                        : null;
+                  },
+                ),
+              ],
+            ),
+          ),
         ),
         actions: [
           TextButton(
@@ -85,12 +102,18 @@ class _ManageServicesScreenState extends State<ManageServicesScreen> {
                 }
                 if (mounted) {
                   ScaffoldMessenger.of(this.context).showSnackBar(
-                    const SnackBar(content: Text('Service saved.')));
+                    const SnackBar(content: Text('Service saved.')),
+                  );
                 }
               } catch (_) {
                 if (mounted) {
                   ScaffoldMessenger.of(this.context).showSnackBar(
-                    const SnackBar(content: Text('Could not save service. Please try again.')));
+                    const SnackBar(
+                      content: Text(
+                        'Could not save service. Please try again.',
+                      ),
+                    ),
+                  );
                 }
               }
             },
@@ -122,11 +145,15 @@ class _ManageServicesScreenState extends State<ManageServicesScreen> {
               } catch (_) {
                 if (mounted) {
                   ScaffoldMessenger.of(this.context).showSnackBar(
-                    const SnackBar(content: Text('Could not delete service.')));
+                    const SnackBar(content: Text('Could not delete service.')),
+                  );
                 }
               }
             },
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+            ),
             child: const Text('Delete'),
           ),
         ],
@@ -137,9 +164,7 @@ class _ManageServicesScreenState extends State<ManageServicesScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Manage Services'),
-      ),
+      appBar: AppBar(title: const Text('Manage Services')),
       floatingActionButton: FloatingActionButton(
         onPressed: () => _showServiceDialog(),
         child: const Icon(Icons.add),
@@ -167,14 +192,28 @@ class _ManageServicesScreenState extends State<ManageServicesScreen> {
                 elevation: 3,
                 margin: const EdgeInsets.symmetric(vertical: 8),
                 child: ListTile(
-                  title: Text(service.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+                  title: Text(
+                    service.name,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 18,
+                    ),
+                  ),
                   subtitle: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(service.description, style: const TextStyle(color: Colors.grey)),
+                      Text(
+                        service.description,
+                        style: const TextStyle(color: Colors.grey),
+                      ),
                       const SizedBox(height: 4),
-                      Text('₹${service.price} | ${service.durationMinutes} min',
-                          style: TextStyle(color: Theme.of(context).primaryColor, fontWeight: FontWeight.w600)),
+                      Text(
+                        '₹${service.price} | ${service.durationMinutes} min',
+                        style: TextStyle(
+                          color: Theme.of(context).primaryColor,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
                     ],
                   ),
                   trailing: Row(
